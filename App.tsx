@@ -14,6 +14,8 @@ import * as Font from "expo-font";
 import * as Permissions from "expo-permissions";
 import * as Icons from "./components/Icons";
 
+import { TextInput } from 'react-native';
+
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFF8ED";
 const LIVE_COLOR = "#FF0000";
@@ -37,6 +39,9 @@ type State = {
   shouldCorrectPitch: boolean;
   volume: number;
   rate: number;
+  uri: string;
+  folder: string;
+  filename: string;
 };
 
 export default class App extends React.Component<Props, State> {
@@ -67,17 +72,29 @@ export default class App extends React.Component<Props, State> {
       shouldCorrectPitch: true,
       volume: 1.0,
       rate: 1.0,
+      uri: "",
+      folder: "agus",
+      filename: "prueba1"
     };
     this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
+    // this.recordingSettings.;
+
     // UNCOMMENT THIS TO TEST maxFileSize:
-    /* this.recordingSettings = {
+    this.recordingSettings = {
       ...this.recordingSettings,
-      android: {
-        ...this.recordingSettings.android,
-        maxFileSize: 12000,
+      ios: {
+        ...this.recordingSettings.ios,
+        extension: '.wav',
+        audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
+        sampleRate: 44100,
+        numberOfChannels: 2,
+        bitRate: 128000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
       },
-    };*/
+    };
   }
 
   componentDidMount() {
@@ -127,6 +144,7 @@ export default class App extends React.Component<Props, State> {
       this.setState({
         isRecording: status.isRecording,
         recordingDuration: status.durationMillis,
+        uri: this.recording && this.recording.getURI() ? this.recording.getURI() : ""
       });
     } else if (status.isDoneRecording) {
       this.setState({
@@ -222,6 +240,7 @@ export default class App extends React.Component<Props, State> {
     this.sound = sound;
     this.setState({
       isLoading: false,
+      uri: this.recording && this.recording.getURI() ? this.recording.getURI() : ""
     });
   }
 
@@ -345,6 +364,72 @@ export default class App extends React.Component<Props, State> {
     return `${this._getMMSSFromMillis(0)}`;
   }
 
+  private _sendRecording = async () => {
+    console.log("_sendRecording")
+
+    const {folder, filename} = this.state;
+
+
+    async function uploadAudioAsync(uri) {
+      console.log("Uploading " + uri);
+
+      var today = new Date();
+      var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+      var time = today.getHours()+':'+today.getMinutes()+':'+today.getSeconds();
+
+      // const fileName = date + time + ".wav"
+
+
+      let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
+
+      const fileBase64 = await FileSystem.readAsStringAsync(uri , {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      let options = {
+        method: 'POST',
+        body: fileBase64,
+        headers: {
+          // 'Accept': 'application/json',
+          'Content-Type': 'audio/vnd.wave',
+          'Authorization': 'Bearer unaKeyDeGoogleQueHayQuePedirleAAgusPorqueTodaviaNoImplementoOAuthComoLaGente'
+        },
+      };
+
+      console.log("POSTing " + uri + " to " + apiUrl);
+      console.log("............................");
+      console.log(apiUrl);
+      console.log(options);
+
+      try {
+        let response = await fetch(apiUrl, options);
+        let result = await response.json();
+
+        console.log(result)
+        // do something with result
+      } catch(e) {
+        console.log('error');
+        console.log(e);
+      }
+
+      return
+    }
+
+
+    if (this.state != null) {
+      let uri = this.state.uri;
+      await uploadAudioAsync(uri);
+      console.log(uri)
+
+      const info = await FileSystem.getInfoAsync(uri);
+      console.log(`FILE INFO: ${JSON.stringify(info)}`);
+
+    }
+
+
+
+  }
+
   render() {
     if (!this.state.fontLoaded) {
       return <View style={styles.emptyContainer} />;
@@ -371,6 +456,39 @@ export default class App extends React.Component<Props, State> {
     return (
       <View style={styles.container}>
         <View
+        >
+          <View />
+          <View style={{ display: 'flex', paddingTop: 60, flexDirection: 'row' }}>
+            <Text
+                style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
+            >
+              Nombre de la carpeta
+            </Text>
+            <TextInput
+                style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
+                onChangeText={text => {
+                  this.setState({folder: text})
+                }}
+                value={this.state.folder}
+            />
+          </View>
+          <View style={{ display: 'flex', paddingTop: 40, flexDirection: 'row' }}>
+            <Text
+                style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
+            >
+              Nombre de la carpeta
+            </Text>
+            <TextInput
+                style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
+                onChangeText={text => {
+                  this.setState({filename: text})
+                }}
+                value={this.state.filename}
+            />
+
+          </View>
+        </View>
+        <View
           style={[
             styles.halfScreenContainer,
             {
@@ -387,7 +505,9 @@ export default class App extends React.Component<Props, State> {
               onPress={this._onRecordPressed}
               disabled={this.state.isLoading}
             >
-              <Image style={styles.image} source={Icons.RECORD_BUTTON.module} />
+              <Image style={styles.image}
+                     source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
+              />
             </TouchableHighlight>
             <View style={styles.recordingDataContainer}>
               <View />
@@ -402,7 +522,7 @@ export default class App extends React.Component<Props, State> {
                     styles.image,
                     { opacity: this.state.isRecording ? 1.0 : 0.0 },
                   ]}
-                  source={Icons.RECORDING.module}
+                  source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
                 />
                 <Text
                   style={[
@@ -462,11 +582,11 @@ export default class App extends React.Component<Props, State> {
               >
                 <Image
                   style={styles.image}
-                  source={
-                    this.state.muted
-                      ? Icons.MUTED_BUTTON.module
-                      : Icons.UNMUTED_BUTTON.module
-                  }
+                  source={{
+                    uri: this.state.muted
+                        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABSklEQVRIid2VsS4FQRSGv05DJUZEVIJGKUo9olYo1K6O5GpE7jNIFDyBRJS03kBBIVokopEQCXFzQ7H/xGQyc2ZtaO6fbHbOnJn/2z0zOwv9pg3A/Zd5C/gCrjOQTg2PeSvpZJ6C7Krf0h7QA1aaQJaAjwKgrXkvwHhTSErrwIDap5p3VHgYHPCUgMTa0pgDxZPAJ9AFJixARxP9lYPMUZWuB8yq71hzNsOBy8BDZNql2ra5hfc6VH5f8Zris3DQfcJ8VTlXeJMF5S4VTyu+DQd5g5yscg2r/1HxkOLXJoBUuQap1uE5AryHBlaJQoC1hS/UnlH+LgQsFiDhG+Ygo7r7RT7P1oOfbeohcQmtY+VE/dsWIIak1sgq1xuFDy2G5DZBDjJVx9xrxwAAjABXyt8AY78xjyE5/Qmk9MMJy9VqAqgjR3V+9ZG+AZnfkmjlyxv5AAAAAElFTkSuQmCC"
+                        : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA5klEQVRIie2UPw4BQRSHP4TKEbQkREOjVIsDKCQOodE6gYQ9hVsoOIEbsBfQERKKfZuMyXj7z3T7a957O7O/bzPv7UCpP2rt2/zt29wLwDT/BVgAjSLmTwWwlOdBEfOZAhgAd+AF9DTDKRDyfRyxOQ7ACuhIvpO1jQa4KuY2YC75XuqR1GcNkDQl5npL8lDqptQ314tVjZpRzg+MAaGxyXVEpsYSjxL7Ei8afYLeB1eT25IHpGiyrbRjOgQeRGPazQKwIUk/2jaruQ1JuirqeQEQnbe3y86GZFYt5b4TUAEOeSClVH0A4b1bznHC0d4AAAAASUVORK5CYII="
+                  }}
                 />
               </TouchableHighlight>
               <Slider
@@ -487,11 +607,11 @@ export default class App extends React.Component<Props, State> {
               >
                 <Image
                   style={styles.image}
-                  source={
-                    this.state.isPlaying
-                      ? Icons.PAUSE_BUTTON.module
-                      : Icons.PLAY_BUTTON.module
-                  }
+                  source={{
+                    uri: this.state.isPlaying
+                        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAjklEQVRIie3UsQkCQRBA0YcgFwqGgg1cC0ZXhHUYmtrCtWABl1wNlmBkfqaGJnoG7mUmwo6B7IdhmYXdD7MzS6GAHutIwYgbdphFCaY4oY4SDGm944Aqt2CBFo+UX9DkFExscE57TxyxzCmAOfbe5RpxxfbT4ZCu+JaflSj8kcPbNHTQQr+KDquIiwt/wgvj/DWO5BQvhAAAAABJRU5ErkJggg=="
+                        : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAMElEQVRIiWNgGAXDHjDikftPQC0heQYGBgYGJlJdRCoYtWDUglELRi0YDBaMghEAAJU1AhyTToiMAAAAAElFTkSuQmCC"
+                  }}
                 />
               </TouchableHighlight>
               <TouchableHighlight
@@ -500,7 +620,21 @@ export default class App extends React.Component<Props, State> {
                 onPress={this._onStopPressed}
                 disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
               >
-                <Image style={styles.image} source={Icons.STOP_BUTTON.module} />
+                <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAO0lEQVRIiWNgGAXDHjDiEP9PLfOYyDSIaMBCQB6XD9EBTh/T3AejFoxaMGoB4ZxMbpkEBzT3wSgYAQAAYgwDHy/kfC8AAAAASUVORK5CYII="}} />
+              </TouchableHighlight>
+            </View>
+            <View>
+              <TouchableHighlight
+                  underlayColor={BACKGROUND_COLOR}
+                  onPress={this._sendRecording}
+              >
+                <Image
+                    style={styles.image}
+                    source={{
+                      uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',
+                    }}
+                />
+                {/*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*/}
               </TouchableHighlight>
             </View>
             <View />
@@ -532,6 +666,8 @@ export default class App extends React.Component<Props, State> {
             </TouchableHighlight>
           </View>
           <View />
+
+
         </View>
       </View>
     );
@@ -563,8 +699,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     alignSelf: "stretch",
-    minHeight: DEVICE_HEIGHT / 2.0,
-    maxHeight: DEVICE_HEIGHT / 2.0,
+    minHeight: DEVICE_HEIGHT / 4.0,
+    maxHeight: DEVICE_HEIGHT / 4.0,
   },
   recordingContainer: {
     flex: 1,
@@ -605,9 +741,6 @@ const styles = StyleSheet.create({
   playbackSlider: {
     alignSelf: "stretch",
   },
-  liveText: {
-    color: LIVE_COLOR,
-  },
   recordingTimestamp: {
     paddingLeft: 20,
   },
@@ -618,6 +751,8 @@ const styles = StyleSheet.create({
   },
   image: {
     backgroundColor: BACKGROUND_COLOR,
+    width: 30,
+    height: 30,
   },
   textButton: {
     backgroundColor: BACKGROUND_COLOR,

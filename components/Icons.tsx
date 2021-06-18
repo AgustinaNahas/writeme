@@ -53,3 +53,9 @@ export const THUMB_2 = new Icon(
   15,
   19
 );
+
+export const SEND = new Icon(
+    require("../assets/images/sent.png"),
+    15,
+    19
+);
