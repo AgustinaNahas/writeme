@@ -2,7 +2,6 @@ import React from "react";
 import {
   Dimensions,
   Image,
-  Slider,
   StyleSheet,
   Text,
   TouchableHighlight,
@@ -84,7 +83,6 @@ export default class App extends React.Component<Props, State> {
     this.recordingSettings = {
       ...this.recordingSettings,
       ios: {
-        ...this.recordingSettings.ios,
         extension: '.wav',
         audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
         sampleRate: 44100,
@@ -170,10 +168,8 @@ export default class App extends React.Component<Props, State> {
       allowsRecordingIOS: true,
       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
       playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-      playThroughEarpieceAndroid: false,
-      staysActiveInBackground: true,
+      playThroughEarpieceAndroid: true,
     });
     if (this.recording !== null) {
       this.recording.setOnRecordingStatusUpdate(null);
@@ -369,37 +365,39 @@ export default class App extends React.Component<Props, State> {
 
     const {folder, filename} = this.state;
 
+    if (!this.recording) {
+      console.log("Press F")
+    } else {
+      try {
+        await this.recording.stopAndUnloadAsync();
+      } catch (error) {
+        console.log("Press F")
+        console.log(error);
+      }
+    }
+
+    if (this.state != null) {
+      let uri = this.state.uri;
+      await uploadAudioAsync(uri);
+
+    }
 
     async function uploadAudioAsync(uri) {
-      console.log("Uploading " + uri);
-
-      var today = new Date();
-      var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
-      var time = today.getHours()+':'+today.getMinutes()+':'+today.getSeconds();
-
-      // const fileName = date + time + ".wav"
-
 
       let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
 
-      const fileBase64 = await FileSystem.readAsStringAsync(uri , {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const response = await fetch(uri);
+      const blobAudio = await response.blob();
 
       let options = {
         method: 'POST',
-        body: fileBase64,
+        body: blobAudio,
         headers: {
           // 'Accept': 'application/json',
           'Content-Type': 'audio/vnd.wave',
           'Authorization': 'Bearer unaKeyDeGoogleQueHayQuePedirleAAgusPorqueTodaviaNoImplementoOAuthComoLaGente'
         },
       };
-
-      console.log("POSTing " + uri + " to " + apiUrl);
-      console.log("............................");
-      console.log(apiUrl);
-      console.log(options);
 
       try {
         let response = await fetch(apiUrl, options);
@@ -408,25 +406,12 @@ export default class App extends React.Component<Props, State> {
         console.log(result)
         // do something with result
       } catch(e) {
-        console.log('error');
+        console.log("Press F")
         console.log(e);
       }
 
       return
     }
-
-
-    if (this.state != null) {
-      let uri = this.state.uri;
-      await uploadAudioAsync(uri);
-      console.log(uri)
-
-      const info = await FileSystem.getInfoAsync(uri);
-      console.log(`FILE INFO: ${JSON.stringify(info)}`);
-
-    }
-
-
 
   }
 
