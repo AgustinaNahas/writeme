@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../uploadit/.idea/uploadit.iml" filepath="$PROJECT_DIR$/../uploadit/.idea/uploadit.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/writeme.iml" filepath="$PROJECT_DIR$/.idea/writeme.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../writeme-sr/.idea/writeme-back.iml" filepath="$PROJECT_DIR$/../writeme-sr/.idea/writeme-back.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../writeme-express/.idea/writeme-express.iml" filepath="$PROJECT_DIR$/../writeme-express/.idea/writeme-express.iml" />
     </modules>
   </component>
 </project>

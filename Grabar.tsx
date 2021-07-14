@@ -10,38 +10,15 @@ import {
 } from "react-native";
 import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
-import * as Font from "expo-font";
 import * as Permissions from "expo-permissions";
 import * as Icons from "./components/Icons";
 
 import { TextInput } from 'react-native';
 
-import {
-    createDrawerNavigator,
-    DrawerScreenProps,
-} from '@react-navigation/drawer';
-
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
-const BACKGROUND_COLOR = "#FFF8ED";
-const LIVE_COLOR = "#FF0000";
+const BACKGROUND_COLOR = "#FFFFFF";
 const DISABLED_OPACITY = 0.5;
 const RATE_SCALE = 3.0;
-
-import {
-    CompositeScreenProps,
-    DarkTheme,
-    DefaultTheme,
-    InitialState,
-    NavigationContainer,
-    NavigatorScreenParams,
-    PathConfigMap,
-    useNavigationContainerRef,
-} from '@react-navigation/native';
-import {
-    createStackNavigator,
-    HeaderStyleInterpolators,
-    StackScreenProps,
-} from '@react-navigation/stack';
 
 type Props = {};
 
@@ -101,20 +78,15 @@ export default class Grabar extends React.Component<Props, State> {
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
-        // this.recordingSettings.;
-
         // UNCOMMENT THIS TO TEST maxFileSize:
         this.recordingSettings = {
             ...this.recordingSettings,
             android: {
+                ...this.recordingSettings.android,
                 extension: '.wav',
-                // audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
                 sampleRate: 44100,
                 numberOfChannels: 2,
                 bitRate: 128000,
-                linearPCMBitDepth: 16,
-                linearPCMIsBigEndian: false,
-                linearPCMIsFloat: false,
             },
             ios: {
                 extension: '.wav',
@@ -130,12 +102,6 @@ export default class Grabar extends React.Component<Props, State> {
     }
 
     componentDidMount() {
-        (async () => {
-            await Font.loadAsync({
-                "cutive-mono-regular": require("./assets/fonts/CutiveMono-Regular.ttf"),
-            });
-            this.setState({ fontLoaded: true });
-        })();
         this._askForPermissions();
     }
 
@@ -477,9 +443,6 @@ export default class Grabar extends React.Component<Props, State> {
 
 
     render() {
-        if (!this.state.fontLoaded) {
-            return <View style={styles.emptyContainer} />;
-        }
 
         if (!this.state.haveRecordingPermissions) {
             return (
@@ -506,6 +469,62 @@ export default class Grabar extends React.Component<Props, State> {
 
         return (
             <View style={styles.container}>
+                <View style={[ styles.halfScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
+                    <View />
+                    <View style={styles.recordingContainer}>
+                        {/*<View />*/}
+                        <TouchableHighlight
+                            underlayColor={BACKGROUND_COLOR}
+                            style={styles.wrapper}
+                            // onPress={this._onRecordPressed}
+                            disabled={this.state.isLoading}
+                        >
+                            <Image style={styles.image}
+                                   source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAB6SURBVHgB7dixCsAgDADRWPr/v2wHp26KyqG5txVEOAgSGiHlVmJaqf/vuuDO/vufOJwBNANoBtDe/qOj7/3u840jRDOAduMrxG6XoxwhmgE0A2gG0Ayg3bgLrd599t7vCNEMoGX6LzT6euw+3zhCNANoBtCOD5Cy+wCzIBNY1+h1FgAAAABJRU5ErkJggg=="}}
+                            />
+                        </TouchableHighlight>
+                        <View />
+                        <View style={styles.recordingDataRowContainer}>
+                            <Text
+                                style={[
+                                    styles.recordingTimestamp,
+                                    { fontFamily: "inter",
+                                        fontSize: 48, },
+                                ]}
+                            >
+                                {this._getRecordingTimestamp()}
+                            </Text>
+                        </View>
+                        <View />
+                        <View />
+                        <TouchableHighlight
+                            underlayColor={BACKGROUND_COLOR}
+                            style={styles.wrapper}
+                            onPress={this._onRecordPressed}
+                            disabled={this.state.isLoading}
+                        >
+                            <Image style={styles.image}
+                                   source={{uri: this.state.isRecording ?
+                                           "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAIuSURBVHgB7ZjhTQJBEIWfaAFagdiBVqCWYAHGMxagViBWoFTAYeJ/rADsgA68DvS3CeAbXZJh4WAP59wY9ksu7N5ONvO4nZ2dBRKJxL9mC4Z0kO3uANcT4EQe93o4BtqXyHPUgJkAOt9sAH02myUmBYWcUkgBQxowYoXzwrdA+UowxEQAncqw3PkpIuIGhpgI4CTX3qsul8senwNp6wGu2WMYYrWEDnWHjre41j9kvY+9f1wFtwlmMaDRgSpCUCO1CPhLkoDYJAGxSQJikwTEJgmIzU6IURfZRPcvkC8thOTMPz0DSaGDGgn9AjMHsmdc7es+1Qx0fxt4EMdFCNt33lxDGBIqoNCdT4yOdH8EvOo+P1fGid/4vEtbj0l9DEOCBIw9BxvzZ/pHeCJLKKyL+9Av0PP6F7q2lfUuBTuWiyicjSlBAujgALPOydrueDYFg/uATl5O1Dpne8B393yOrG8khOBrFSncG57TdOqWTj0iIpXuhZ6Q9f2alqJa58jvEYlKiWwkK8XbUqWAp7BOyH4vcSO2MKTyzRydOHGXWIsmyynyBT+7zdDZN/lzyJg5dlvqrk6EfpJchMQQ52stGgvKxBoJaDp15uJh5pbN7f+ZcwzeWC2sdRaiiJ7sKgjb+2tl7cOc3jZRTUgV25X8+jQqmdUJkSTVnnjnIsG9a4uN2MKQyjFQhkt28swFZobcPANPSQVNbDajIqsTSVIBZoOygegCyjJsIpHYEL4A5mSjcUuKMyMAAAAASUVORK5CYII="
+                                           : ( this.state.recordingDuration ?
+                                               "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAJ2SURBVHgB7ZnhUeMwEIXf5SiAq+BCB1ABXAfXwA3OXAHcVUBSAUkFMTD8hwoSOkgHuAPymyExb4k8swiSSPEGZxh9M55ItkbeZ2ml1QZIJBKJJvkGY4bI9veAsxI4kcvdnsyBQQd5DmNMBdD4dgsYsdhe0qSgkF8UUsCIFgxZY7zwKlBGCXbvtIFGZVhtfIWI+AcjzASwozPv1iWnyw9eB1LWDzhvj2H3XjMOdYWGdznXpzLf594XV85dG1Mf0GhHFSHYElsT8FkkAU2TBDRNEtA0SUDTJAFNsxfa8BJZqeunyFcehiTmr2IgOehgS8SMwJuA7AZ/f+o61Yx1/TtwIYaLEJbPvb4mMCJGQKErT5gd6foMuNd1DlfGzh94PUpZP5PzMYwIFjD3DGy9j+n78EQuobA83MeMwK1XP9VnW5nvcmDHahGFa2NGsAAaOMZb42RuD702BZ37gEZ2SjXPWR7zXo/XkWVGQohKq8jBveUZTaP+06g+anKFbEg/6sUKjM4L8UUj/0xLUd0/yHuoQbVMS1/PrIYKid7IZjJTvCVVDvDyBUPWe/EbabvsufTlckcZAtgoM8fOT1wS66MOc4q8w2K1mbj2bf4c0meO3ZK672+E/kbpWJvJ2zi1SKN+O3/YKMsWKOAV91E+9I+NYyF2diurCsLW/lq4TXF0jczf0esFc3rZRJyQmLYVbfEPjtSD9g+TaFR2VidENqlB6cVFgrs3kDbSFvUoqoL5/wMVsdHrKh9wTN1/DF19MzicbhIqy8vFhvkuRbnTAmTalYvVZ7ysza4KmLoQJV/XcOcESNDHn35oRntnBLjp0rGOVhOJr84LTLbUaT0iDnoAAAAASUVORK5CYII="
+                                               : "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAJqSURBVHgB7ZnhURsxEIWfHQpIKshRQUwFkAriFJDhPCmApILYFYRU4CMz/AYqwFSAqYDrAP9mBpu3oGOWxT5Lh+CGQd/MDdo7Ie07rXTSGkgk3jcdRGaM/OMGsLcAduRyt6dz4N8ARYHIRBVA57MucMpitqJKSSFfKaREJLqIyBrnhTuBMkqI12cc6FSOeucrRMQvRCKaADa0Z24dMFw+8dqUsn7AuN1GvH6j0dMGHR8y1mcS73PzxtXkfjZR54BGT1QRghfixQS8FklA2yQBbZMEtE0S0DZJQNts+FY8QL7Q9i6K2sOQ7PmrPZAcdBC5/YqQEXi0ITvEz8/aZm8TbX8A/orjIoTlP6atqTZYp1fXVx0hAkptXONmS9s3wJm2+TpzNn7J60rK+pmcj03bmTY6RmAd3gLmxsHu0z39PozIFZT2cM8R+qZtCr6AJyEjcGzsXX22lXiXAzvqRZSuzgMSZktG6BieeAuggxM8dk5ie2zqlJx8m3RgsFBhwPKE90a8tmxGYsn8KF1fXgSlVeTg3jVO06nf7HAfDeDKI84PTXuDkPxRcF7oP/JTe6alqOEPFCMEQOclCWCF340gAvD+DlRwtRnQ4XMWH+JfDvAUlvHZaF3Syi2rY76Evnk0s/PDh0aZOTrRp4ijFQ0WFHKC+1ieuvoZ//To+LabsE8SW3T+O+t7T17VXzOciPEyZwKZubgPdl54Vm7UIxdai6xOi3vnSzQkSnLXrU6yomSe/yLfg1GMbHXs7PQOhfT5Vr90zEolb5v3LuQjFbLOryP67wMVTXeXoaQDTdskAW3z5gUkEolEu9wCzsi2NC28K/cAAAAASUVORK5CYII=")}}
+                            />
+                        </TouchableHighlight>
+                    </View>
+                    <View />
+                </View>
+
+                <View style={{width: "100%"}}>
+                    <Text
+                        style={{ fontFamily: "open-sans",
+                            fontSize: 16, width: "100%", textAlign: "center" }}
+                    >
+                        {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
+
+                    </Text>
+                </View>
+
                 <View style={[
                     styles.halfScreenContainer,]}>
                     <View />
@@ -539,64 +558,8 @@ export default class Grabar extends React.Component<Props, State> {
 
                     </View>
                 </View>
-                <View
-                    style={[
-                        styles.halfScreenContainer,
-                        {
-                            opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0,
-                        },
-                    ]}
-                >
-                    <View />
-                    <View style={styles.recordingContainer}>
-                        <View />
-                        <TouchableHighlight
-                            underlayColor={BACKGROUND_COLOR}
-                            style={styles.wrapper}
-                            onPress={this._onRecordPressed}
-                            disabled={this.state.isLoading}
-                        >
-                            <Image style={styles.image}
-                                   source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
-                            />
-                        </TouchableHighlight>
-                        <View style={styles.recordingDataContainer}>
-                            <View />
-                            <Text
-                                style={[styles.liveText, { fontFamily: "cutive-mono-regular" }]}
-                            >
-                                {this.state.isRecording ? "LIVE" : ""}
-                            </Text>
-                            <View style={styles.recordingDataRowContainer}>
-                                <Image
-                                    style={[
-                                        styles.image,
-                                        { opacity: this.state.isRecording ? 1.0 : 0.0 },
-                                    ]}
-                                    source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
-                                />
-                                <Text
-                                    style={[
-                                        styles.recordingTimestamp,
-                                        { fontFamily: "cutive-mono-regular" },
-                                    ]}
-                                >
-                                    {this._getRecordingTimestamp()}
-                                </Text>
-                            </View>
-                            <View />
-                        </View>
-                        <View />
-                    </View>
-                    <View />
-                </View>
-                <View style={{width: "100%"}}>
-                    <Text
-                        style={{ fontFamily: "cutive-mono-regular", fontSize: 20, width: "100%", textAlign: "center", borderColor: "blue", borderWidth: 2 }}
-                    >
-                        {this.state.texto ? this.state.texto : "Texto!" }
-                    </Text>
-                </View>
+
+
                 <View
                     style={[
                         styles.halfScreenContainer,
@@ -752,7 +715,6 @@ const styles = StyleSheet.create({
     // emptyContainer: {
     //   alignSelf: "stretch",
     //   backgroundColor: "green",
-    //   borderColor: 'purple', borderWidth: 1,
     // },
     container: {
         flex: 1,
@@ -763,13 +725,20 @@ const styles = StyleSheet.create({
         backgroundColor: BACKGROUND_COLOR,
         minHeight: (DEVICE_HEIGHT - 64),
         maxHeight: (DEVICE_HEIGHT - 64),
-        borderColor: 'purple', borderWidth: 1,
     },
     noPermissionsText: {
         textAlign: "center",
         borderColor: 'purple', borderWidth: 1,
     },
-    wrapper: {},
+    wrapper: {
+        maxWidth: 50,
+        flex: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        alignSelf: "stretch",
+
+    },
     touchableOpacityStyle: {
         position: 'absolute',
         width: 50,
@@ -790,7 +759,6 @@ const styles = StyleSheet.create({
         height: 30,
     },
     halfScreenContainer: {
-        borderColor: 'purple', borderWidth: 1,
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
@@ -801,7 +769,6 @@ const styles = StyleSheet.create({
         marginTop: 0
     },
     recordingContainer: {
-        borderColor: 'purple', borderWidth: 1,
         flex: 1,
         flexDirection: "row",
         justifyContent: "space-between",
@@ -823,10 +790,12 @@ const styles = StyleSheet.create({
     recordingDataRowContainer: {
         flex: 1,
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
-        minHeight: Icons.RECORDING.height,
-        maxHeight: Icons.RECORDING.height,
+        // minHeight: Icons.RECORDING.height,
+        // maxHeight: Icons.RECORDING.height,
+        alignSelf: "stretch",
+        textAlign: "center"
     },
     playbackContainer: {
         //barrita de reproduccion
