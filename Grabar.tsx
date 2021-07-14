@@ -5,7 +5,7 @@ import {
     Slider,
     StyleSheet,
     Text,
-    TouchableHighlight,
+    TouchableHighlight, TouchableOpacity,
     View,
 } from "react-native";
 import { Audio, AVPlaybackStatus } from "expo-av";
@@ -16,11 +16,32 @@ import * as Icons from "./components/Icons";
 
 import { TextInput } from 'react-native';
 
+import {
+    createDrawerNavigator,
+    DrawerScreenProps,
+} from '@react-navigation/drawer';
+
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFF8ED";
 const LIVE_COLOR = "#FF0000";
 const DISABLED_OPACITY = 0.5;
 const RATE_SCALE = 3.0;
+
+import {
+    CompositeScreenProps,
+    DarkTheme,
+    DefaultTheme,
+    InitialState,
+    NavigationContainer,
+    NavigatorScreenParams,
+    PathConfigMap,
+    useNavigationContainerRef,
+} from '@react-navigation/native';
+import {
+    createStackNavigator,
+    HeaderStyleInterpolators,
+    StackScreenProps,
+} from '@react-navigation/stack';
 
 type Props = {};
 
@@ -42,9 +63,10 @@ type State = {
     uri: string;
     folder: string;
     filename: string;
+    texto: string;
 };
 
-export default class Record extends React.Component<Props, State> {
+export default class Grabar extends React.Component<Props, State> {
     private recording: Audio.Recording | null;
     private sound: Audio.Sound | null;
     private isSeeking: boolean;
@@ -74,7 +96,8 @@ export default class Record extends React.Component<Props, State> {
             rate: 1.0,
             uri: "",
             folder: "agus",
-            filename: "prueba1"
+            filename: "prueba1",
+            texto: ""
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -83,6 +106,16 @@ export default class Record extends React.Component<Props, State> {
         // UNCOMMENT THIS TO TEST maxFileSize:
         this.recordingSettings = {
             ...this.recordingSettings,
+            android: {
+                extension: '.wav',
+                // audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
+                sampleRate: 44100,
+                numberOfChannels: 2,
+                bitRate: 128000,
+                linearPCMBitDepth: 16,
+                linearPCMIsBigEndian: false,
+                linearPCMIsFloat: false,
+            },
             ios: {
                 extension: '.wav',
                 audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
@@ -383,7 +416,11 @@ export default class Record extends React.Component<Props, State> {
 
         }
 
-        async function uploadAudioAsync(uri) {
+        const cambiarTexto = (texto: string) => {
+            this.setState({texto: texto});
+        };
+
+        async function uploadAudioAsync(uri: string) {
 
             let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
 
@@ -396,16 +433,18 @@ export default class Record extends React.Component<Props, State> {
                 headers: {
                     // 'Accept': 'application/json',
                     'Content-Type': 'audio/vnd.wave',
-                    'Authorization': 'Bearer ya29.a0ARrdaM9ikD-e2MAtvmhWJp5Xovg-K6ABPXZvoZthhZwCIgTH2Uay-kh1-fYqCne5-R5ShiF-lFoxXBzXtD8Gsvt0Q4bhJ0XKgJOfiOOJJgZwkjYfnR5pO5YNkAw_93rkuyZFQqKSd-xUjkKxymPpuEcAPFGx'
+                    'Authorization': 'Bearer ya29.a0ARrdaM8hRQSo_c0yPBBTDc7T19KjOgpRjfVIZyBrpwmJ7ObzyLA4geGXD-iX55OkL-_6IBBaM9BjvGjUxUsVW65uRBsaUO5Qz4jxjgLGxHdAvhIH2hV0jB4IgV4FwHqlqG2ZJHn1LWt6UUV-X6vtTGVP18my'
                 },
             };
+
+
 
             try {
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
 
                 console.log("Todo ok! Se subió el archivo")
-                console.log(result)
+                // console.log(result)
 
                 var myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/json");
@@ -421,13 +460,11 @@ export default class Record extends React.Component<Props, State> {
 
                 fetch("http://writeme-api.herokuapp.com/transcript", requestOptions)
                     .then(response => response.text())
-                    .then(result => console.log(result))
+                    .then(result => {
+                        console.log("Transcripción: " + JSON.parse(result).transcription)
+                        cambiarTexto(JSON.parse(result).transcription)
+                    })
                     .catch(error => console.log('error ', error));
-
-                // let responseAPI = await fetch(apiUrl, options);
-                // let resultAPI = await response.json();
-
-                // do something with result
             } catch(e) {
                 console.log("Press F")
                 console.log(e);
@@ -437,6 +474,7 @@ export default class Record extends React.Component<Props, State> {
         }
 
     }
+
 
     render() {
         if (!this.state.fontLoaded) {
@@ -461,232 +499,261 @@ export default class Record extends React.Component<Props, State> {
             );
         }
 
-        return (
-        <View style={styles.container}>
-            <View>
-                <View />
-                <View style={{ display: 'flex', paddingTop: 60, flexDirection: 'row' }}>
-                    <Text
-                        style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
-                    >
-                        Nombre de la carpeta
-                    </Text>
-                    <TextInput
-                        style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
-                        onChangeText={text => {
-                            this.setState({folder: text})
-                        }}
-                        value={this.state.folder}
-                    />
-                </View>
-                <View style={{ display: 'flex', paddingTop: 40, flexDirection: 'row' }}>
-                    <Text
-                        style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
-                    >
-                        Nombre de la carpeta
-                    </Text>
-                    <TextInput
-                        style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
-                        onChangeText={text => {
-                            this.setState({filename: text})
-                        }}
-                        value={this.state.filename}
-                    />
+        const clickHandler = () => {
+            //function to handle click on floating Action Button
+            alert('Floating Button Clicked');
+        };
 
-                </View>
-            </View>
-            <View
-                style={[
-                    styles.halfScreenContainer,
-                    {
-                        opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0,
-                    },
-                ]}
-            >
-                <View />
-                <View style={styles.recordingContainer}>
+        return (
+            <View style={styles.container}>
+                <View style={[
+                    styles.halfScreenContainer,]}>
                     <View />
-                    <TouchableHighlight
-                        underlayColor={BACKGROUND_COLOR}
-                        style={styles.wrapper}
-                        onPress={this._onRecordPressed}
-                        disabled={this.state.isLoading}
-                    >
-                        <Image style={styles.image}
-                               source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
-                        />
-                    </TouchableHighlight>
-                    <View style={styles.recordingDataContainer}>
-                        <View />
+                    <View style={{ display: 'flex', paddingTop: 20, flexDirection: 'row' }}>
                         <Text
-                            style={[styles.liveText, { fontFamily: "cutive-mono-regular" }]}
+                            style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
                         >
-                            {this.state.isRecording ? "LIVE" : ""}
+                            Nombre de la carpeta
                         </Text>
-                        <View style={styles.recordingDataRowContainer}>
-                            <Image
-                                style={[
-                                    styles.image,
-                                    { opacity: this.state.isRecording ? 1.0 : 0.0 },
-                                ]}
-                                source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
+                        <TextInput
+                            style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
+                            onChangeText={text => {
+                                this.setState({folder: text})
+                            }}
+                            value={this.state.folder}
+                        />
+                    </View>
+                    <View style={{ display: 'flex', paddingTop: 20, flexDirection: 'row' }}>
+                        <Text
+                            style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
+                        >
+                            Nombre de la carpeta
+                        </Text>
+                        <TextInput
+                            style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
+                            onChangeText={text => {
+                                this.setState({filename: text})
+                            }}
+                            value={this.state.filename}
+                        />
+
+                    </View>
+                </View>
+                <View
+                    style={[
+                        styles.halfScreenContainer,
+                        {
+                            opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0,
+                        },
+                    ]}
+                >
+                    <View />
+                    <View style={styles.recordingContainer}>
+                        <View />
+                        <TouchableHighlight
+                            underlayColor={BACKGROUND_COLOR}
+                            style={styles.wrapper}
+                            onPress={this._onRecordPressed}
+                            disabled={this.state.isLoading}
+                        >
+                            <Image style={styles.image}
+                                   source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
                             />
+                        </TouchableHighlight>
+                        <View style={styles.recordingDataContainer}>
+                            <View />
                             <Text
-                                style={[
-                                    styles.recordingTimestamp,
-                                    { fontFamily: "cutive-mono-regular" },
-                                ]}
+                                style={[styles.liveText, { fontFamily: "cutive-mono-regular" }]}
                             >
-                                {this._getRecordingTimestamp()}
+                                {this.state.isRecording ? "LIVE" : ""}
                             </Text>
+                            <View style={styles.recordingDataRowContainer}>
+                                <Image
+                                    style={[
+                                        styles.image,
+                                        { opacity: this.state.isRecording ? 1.0 : 0.0 },
+                                    ]}
+                                    source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA10lEQVRIie2UTQrCMBSEP1y4qkv1LlJBvYE/pxEXigvrddRjqHiJdlkFXRZ00QlIa9VINsUOhGaS92YeL03gX1AH1kAEhECgNWcIgHtmBC4NQol2AF/z0KWBqbqIF6LmsorKoFwGN9K/xBOP9PWBbmatodirjfFJST3xVxdtpb2B+NHGYKmkjXhdJiH5p2Kn2IWNQRu4KHH6Jm6mmDPQtDEAmACJBLZAn/RMPNK2mMoTYGQrbjAGYvL9NyMGhr+KG7RI+3t4Et4Dc+05xdePnEH5b3KFj3gAFSFB0nZBJ/kAAAAASUVORK5CYII="}}
+                                />
+                                <Text
+                                    style={[
+                                        styles.recordingTimestamp,
+                                        { fontFamily: "cutive-mono-regular" },
+                                    ]}
+                                >
+                                    {this._getRecordingTimestamp()}
+                                </Text>
+                            </View>
+                            <View />
                         </View>
                         <View />
                     </View>
                     <View />
                 </View>
-                <View />
-            </View>
-            <View
-                style={[
-                    styles.halfScreenContainer,
-                    {
-                        opacity:
-                            !this.state.isPlaybackAllowed || this.state.isLoading
-                                ? DISABLED_OPACITY
-                                : 1.0,
-                    },
-                ]}
-            >
-                <View />
-                <View style={styles.playbackContainer}>
-                    <Slider
-                        style={styles.playbackSlider}
-                        trackImage={Icons.TRACK_1.module}
-                        thumbImage={Icons.THUMB_1.module}
-                        value={this._getSeekSliderPosition()}
-                        onValueChange={this._onSeekSliderValueChange}
-                        onSlidingComplete={this._onSeekSliderSlidingComplete}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                    />
+                <View style={{width: "100%"}}>
                     <Text
-                        style={[
-                            styles.playbackTimestamp,
-                            { fontFamily: "cutive-mono-regular" },
-                        ]}
+                        style={{ fontFamily: "cutive-mono-regular", fontSize: 20, width: "100%", textAlign: "center", borderColor: "blue", borderWidth: 2 }}
                     >
-                        {this._getPlaybackTimestamp()}
+                        {this.state.texto ? this.state.texto : "Texto!" }
                     </Text>
                 </View>
                 <View
-                    style={[styles.buttonsContainerBase, styles.buttonsContainerTopRow]}
+                    style={[
+                        styles.halfScreenContainer,
+                        {
+                            opacity:
+                                !this.state.isPlaybackAllowed || this.state.isLoading
+                                    ? DISABLED_OPACITY
+                                    : 1.0,
+                        },
+                    ]}
                 >
-                    <View style={styles.volumeContainer}>
-                        <TouchableHighlight
-                            underlayColor={BACKGROUND_COLOR}
-                            style={styles.wrapper}
-                            onPress={this._onMutePressed}
-                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                        >
-                            <Image
-                                style={styles.image}
-                                source={{
-                                    uri: this.state.muted
-                                        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABSklEQVRIid2VsS4FQRSGv05DJUZEVIJGKUo9olYo1K6O5GpE7jNIFDyBRJS03kBBIVokopEQCXFzQ7H/xGQyc2ZtaO6fbHbOnJn/2z0zOwv9pg3A/Zd5C/gCrjOQTg2PeSvpZJ6C7Krf0h7QA1aaQJaAjwKgrXkvwHhTSErrwIDap5p3VHgYHPCUgMTa0pgDxZPAJ9AFJixARxP9lYPMUZWuB8yq71hzNsOBy8BDZNql2ra5hfc6VH5f8Zris3DQfcJ8VTlXeJMF5S4VTyu+DQd5g5yscg2r/1HxkOLXJoBUuQap1uE5AryHBlaJQoC1hS/UnlH+LgQsFiDhG+Ygo7r7RT7P1oOfbeohcQmtY+VE/dsWIIak1sgq1xuFDy2G5DZBDjJVx9xrxwAAjABXyt8AY78xjyE5/Qmk9MMJy9VqAqgjR3V+9ZG+AZnfkmjlyxv5AAAAAElFTkSuQmCC"
-                                        : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA5klEQVRIie2UPw4BQRSHP4TKEbQkREOjVIsDKCQOodE6gYQ9hVsoOIEbsBfQERKKfZuMyXj7z3T7a957O7O/bzPv7UCpP2rt2/zt29wLwDT/BVgAjSLmTwWwlOdBEfOZAhgAd+AF9DTDKRDyfRyxOQ7ACuhIvpO1jQa4KuY2YC75XuqR1GcNkDQl5npL8lDqptQ314tVjZpRzg+MAaGxyXVEpsYSjxL7Ei8afYLeB1eT25IHpGiyrbRjOgQeRGPazQKwIUk/2jaruQ1JuirqeQEQnbe3y86GZFYt5b4TUAEOeSClVH0A4b1bznHC0d4AAAAASUVORK5CYII="
-                                }}
-                            />
-                        </TouchableHighlight>
+                    <View />
+                    <View style={styles.playbackContainer}>
                         <Slider
-                            style={styles.volumeSlider}
+                            style={styles.playbackSlider}
                             trackImage={Icons.TRACK_1.module}
-                            thumbImage={Icons.THUMB_2.module}
-                            value={1}
-                            onValueChange={this._onVolumeSliderValueChange}
+                            thumbImage={Icons.THUMB_1.module}
+                            value={this._getSeekSliderPosition()}
+                            onValueChange={this._onSeekSliderValueChange}
+                            onSlidingComplete={this._onSeekSliderSlidingComplete}
                             disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                         />
+                        <Text
+                            style={[
+                                styles.playbackTimestamp,
+                                { fontFamily: "cutive-mono-regular" },
+                            ]}
+                        >
+                            {this._getPlaybackTimestamp()}
+                        </Text>
                     </View>
-                    <View style={styles.playStopContainer}>
+                    <View
+                        style={[styles.buttonsContainerBase, styles.buttonsContainerTopRow]}
+                    >
+                        <View style={styles.volumeContainer}>
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                style={styles.wrapper}
+                                onPress={this._onMutePressed}
+                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                            >
+                                <Image
+                                    style={styles.image}
+                                    source={{
+                                        uri: this.state.muted
+                                            ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABSklEQVRIid2VsS4FQRSGv05DJUZEVIJGKUo9olYo1K6O5GpE7jNIFDyBRJS03kBBIVokopEQCXFzQ7H/xGQyc2ZtaO6fbHbOnJn/2z0zOwv9pg3A/Zd5C/gCrjOQTg2PeSvpZJ6C7Krf0h7QA1aaQJaAjwKgrXkvwHhTSErrwIDap5p3VHgYHPCUgMTa0pgDxZPAJ9AFJixARxP9lYPMUZWuB8yq71hzNsOBy8BDZNql2ra5hfc6VH5f8Zris3DQfcJ8VTlXeJMF5S4VTyu+DQd5g5yscg2r/1HxkOLXJoBUuQap1uE5AryHBlaJQoC1hS/UnlH+LgQsFiDhG+Ygo7r7RT7P1oOfbeohcQmtY+VE/dsWIIak1sgq1xuFDy2G5DZBDjJVx9xrxwAAjABXyt8AY78xjyE5/Qmk9MMJy9VqAqgjR3V+9ZG+AZnfkmjlyxv5AAAAAElFTkSuQmCC"
+                                            : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA5klEQVRIie2UPw4BQRSHP4TKEbQkREOjVIsDKCQOodE6gYQ9hVsoOIEbsBfQERKKfZuMyXj7z3T7a957O7O/bzPv7UCpP2rt2/zt29wLwDT/BVgAjSLmTwWwlOdBEfOZAhgAd+AF9DTDKRDyfRyxOQ7ACuhIvpO1jQa4KuY2YC75XuqR1GcNkDQl5npL8lDqptQ314tVjZpRzg+MAaGxyXVEpsYSjxL7Ei8afYLeB1eT25IHpGiyrbRjOgQeRGPazQKwIUk/2jaruQ1JuirqeQEQnbe3y86GZFYt5b4TUAEOeSClVH0A4b1bznHC0d4AAAAASUVORK5CYII="
+                                    }}
+                                />
+                            </TouchableHighlight>
+                            <Slider
+                                style={styles.volumeSlider}
+                                trackImage={Icons.TRACK_1.module}
+                                thumbImage={Icons.THUMB_2.module}
+                                value={1}
+                                onValueChange={this._onVolumeSliderValueChange}
+                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                            />
+                        </View>
+                        <View style={styles.playStopContainer}>
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                style={styles.wrapper}
+                                onPress={this._onPlayPausePressed}
+                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                            >
+                                <Image
+                                    style={styles.image}
+                                    source={{
+                                        uri: this.state.isPlaying
+                                            ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAjklEQVRIie3UsQkCQRBA0YcgFwqGgg1cC0ZXhHUYmtrCtWABl1wNlmBkfqaGJnoG7mUmwo6B7IdhmYXdD7MzS6GAHutIwYgbdphFCaY4oY4SDGm944Aqt2CBFo+UX9DkFExscE57TxyxzCmAOfbe5RpxxfbT4ZCu+JaflSj8kcPbNHTQQr+KDquIiwt/wgvj/DWO5BQvhAAAAABJRU5ErkJggg=="
+                                            : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAMElEQVRIiWNgGAXDHjDikftPQC0heQYGBgYGJlJdRCoYtWDUglELRi0YDBaMghEAAJU1AhyTToiMAAAAAElFTkSuQmCC"
+                                    }}
+                                />
+                            </TouchableHighlight>
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                style={styles.wrapper}
+                                onPress={this._onStopPressed}
+                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                            >
+                                <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAO0lEQVRIiWNgGAXDHjDiEP9PLfOYyDSIaMBCQB6XD9EBTh/T3AejFoxaMGoB4ZxMbpkEBzT3wSgYAQAAYgwDHy/kfC8AAAAASUVORK5CYII="}} />
+                            </TouchableHighlight>
+                        </View>
+                        <View>
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                onPress={this._sendRecording}
+                            >
+                                <Image
+                                    style={styles.image}
+                                    source={{
+                                        uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',
+                                    }}
+                                />
+                                {/*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*/}
+                            </TouchableHighlight>
+                        </View>
+                        <View />
+                    </View>
+                    <View
+                        style={[
+                            styles.buttonsContainerBase,
+                            styles.buttonsContainerBottomRow,
+                        ]}
+                    >
+                        <Text style={styles.timestamp}>Rate:</Text>
+                        <Slider
+                            style={styles.rateSlider}
+                            trackImage={Icons.TRACK_1.module}
+                            thumbImage={Icons.THUMB_1.module}
+                            value={this.state.rate / RATE_SCALE}
+                            onSlidingComplete={this._onRateSliderSlidingComplete}
+                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                        />
                         <TouchableHighlight
                             underlayColor={BACKGROUND_COLOR}
                             style={styles.wrapper}
-                            onPress={this._onPlayPausePressed}
+                            onPress={this._onPitchCorrectionPressed}
                             disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                         >
-                            <Image
-                                style={styles.image}
-                                source={{
-                                    uri: this.state.isPlaying
-                                        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAjklEQVRIie3UsQkCQRBA0YcgFwqGgg1cC0ZXhHUYmtrCtWABl1wNlmBkfqaGJnoG7mUmwo6B7IdhmYXdD7MzS6GAHutIwYgbdphFCaY4oY4SDGm944Aqt2CBFo+UX9DkFExscE57TxyxzCmAOfbe5RpxxfbT4ZCu+JaflSj8kcPbNHTQQr+KDquIiwt/wgvj/DWO5BQvhAAAAABJRU5ErkJggg=="
-                                        : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAMElEQVRIiWNgGAXDHjDikftPQC0heQYGBgYGJlJdRCoYtWDUglELRi0YDBaMghEAAJU1AhyTToiMAAAAAElFTkSuQmCC"
-                                }}
-                            />
-                        </TouchableHighlight>
-                        <TouchableHighlight
-                            underlayColor={BACKGROUND_COLOR}
-                            style={styles.wrapper}
-                            onPress={this._onStopPressed}
-                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                        >
-                            <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAO0lEQVRIiWNgGAXDHjDiEP9PLfOYyDSIaMBCQB6XD9EBTh/T3AejFoxaMGoB4ZxMbpkEBzT3wSgYAQAAYgwDHy/kfC8AAAAASUVORK5CYII="}} />
-                        </TouchableHighlight>
-                    </View>
-                    <View>
-                        <TouchableHighlight
-                            underlayColor={BACKGROUND_COLOR}
-                            onPress={this._sendRecording}
-                        >
-                            <Image
-                                style={styles.image}
-                                source={{
-                                    uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',
-                                }}
-                            />
-                            {/*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*/}
+                            <Text style={[{ fontFamily: "cutive-mono-regular" }]}>
+                                PC: {this.state.shouldCorrectPitch ? "yes" : "no"}
+                            </Text>
                         </TouchableHighlight>
                     </View>
                     <View />
+
+
                 </View>
-                <View
-                    style={[
-                        styles.buttonsContainerBase,
-                        styles.buttonsContainerBottomRow,
-                    ]}
-                >
-                    <Text style={styles.timestamp}>Rate:</Text>
-                    <Slider
-                        style={styles.rateSlider}
-                        trackImage={Icons.TRACK_1.module}
-                        thumbImage={Icons.THUMB_1.module}
-                        value={this.state.rate / RATE_SCALE}
-                        onSlidingComplete={this._onRateSliderSlidingComplete}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => this.props.navigation.navigate('Lista grabaciones')}
+                    style={styles.touchableOpacityStyle}>
+                    <Image
+                        //We are making FAB using TouchableOpacity with an image
+                        //We are using online image here
+                        source={{
+                            uri:
+                                'https://img.icons8.com/material-outlined/24/000000/edit-folder.png',
+                        }}
+                        //You can use you project image Example below
+                        //source={require('./images/float-add-icon.png')}
+                        style={styles.floatingButtonStyle}
                     />
-                    <TouchableHighlight
-                        underlayColor={BACKGROUND_COLOR}
-                        style={styles.wrapper}
-                        onPress={this._onPitchCorrectionPressed}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                    >
-                        <Text style={[{ fontFamily: "cutive-mono-regular" }]}>
-                            PC: {this.state.shouldCorrectPitch ? "yes" : "no"}
-                        </Text>
-                    </TouchableHighlight>
-                </View>
-                <View />
-
-
+                </TouchableOpacity>
             </View>
-        </View>
-    );
+        );
     }
 }
 
 const styles = StyleSheet.create({
-    emptyContainer: {
-        alignSelf: "stretch",
-        backgroundColor: BACKGROUND_COLOR,
-        borderColor: 'purple', borderWidth: 1,
-    },
+    // emptyContainer: {
+    //   alignSelf: "stretch",
+    //   backgroundColor: "green",
+    //   borderColor: 'purple', borderWidth: 1,
+    // },
     container: {
         flex: 1,
         flexDirection: "column",
@@ -694,8 +761,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         alignSelf: "stretch",
         backgroundColor: BACKGROUND_COLOR,
-        minHeight: DEVICE_HEIGHT,
-        maxHeight: DEVICE_HEIGHT,
+        minHeight: (DEVICE_HEIGHT - 64),
+        maxHeight: (DEVICE_HEIGHT - 64),
         borderColor: 'purple', borderWidth: 1,
     },
     noPermissionsText: {
@@ -703,28 +770,47 @@ const styles = StyleSheet.create({
         borderColor: 'purple', borderWidth: 1,
     },
     wrapper: {},
+    touchableOpacityStyle: {
+        position: 'absolute',
+        width: 50,
+        height: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        right: 30,
+        bottom: 50,
+        borderRadius: 100,
+        borderWidth: 2,
+        borderColor: "black",
+        backgroundColor:'white',
+        padding: 30
+    },
+    floatingButtonStyle: {
+        resizeMode: 'contain',
+        width: 30,
+        height: 30,
+    },
     halfScreenContainer: {
         borderColor: 'purple', borderWidth: 1,
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
-        alignItems: "center",
+        // alignItems: "center",
         alignSelf: "stretch",
-        minHeight: DEVICE_HEIGHT / 4.0,
-        maxHeight: DEVICE_HEIGHT / 4.0,
+        minHeight: (DEVICE_HEIGHT - 64) / 4.0,
+        maxHeight: (DEVICE_HEIGHT - 64) / 4.0,
+        marginTop: 0
     },
     recordingContainer: {
         borderColor: 'purple', borderWidth: 1,
         flex: 1,
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
-        alignSelf: "stretch",
-        minHeight: Icons.RECORD_BUTTON.height,
-        maxHeight: Icons.RECORD_BUTTON.height,
+        // alignItems: "center",
+        // alignSelf: "stretch",
+        // height: "300px",
+        maxHeight: 50,
     },
     recordingDataContainer: {
-        borderColor: 'purple', borderWidth: 1,
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
@@ -743,6 +829,7 @@ const styles = StyleSheet.create({
         maxHeight: Icons.RECORDING.height,
     },
     playbackContainer: {
+        //barrita de reproduccion
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
@@ -752,6 +839,7 @@ const styles = StyleSheet.create({
         maxHeight: Icons.THUMB_1.height * 2.0,
     },
     playbackSlider: {
+        //barrita de reproduccion
         alignSelf: "stretch",
     },
     recordingTimestamp: {
