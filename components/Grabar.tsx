@@ -384,44 +384,35 @@ export default class Grabar extends React.Component<Props, State> {
 
         }
 
-        const cambiarEstado = (estado: State) => {
+        const cambiarEstado = (estado) => {
             this.setState(estado);
         };
 
         async function uploadAudioAsync(uri: string) {
+
+            let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
+
             const response = await fetch(uri);
             const blobAudio = await response.blob();
 
-            let apiUrl = "http://192.168.0.220:9001/uploads";
-
-            var bodyFormData = new FormData();
-            bodyFormData.append('file', blobAudio);
-            bodyFormData.append('folder', folder);
-
             let options = {
                 method: 'POST',
-                body: bodyFormData,
-                // headers: { "Content-Type": "multipart/form-data" },
+                body: blobAudio,
+                headers: {
+                    // 'Accept': 'application/json',
+                    'Content-Type': 'audio/vnd.wave',
+                    'Authorization': 'Bearer algoalgoalgo'
+                },
             };
 
-            var request = new XMLHttpRequest()
-            request.open("POST", "http://192.168.0.220:9001/uploads")
-            // request.withCredentials = true
-
-            // const config = { headers: { 'Content-Type': 'multipart/form-data' } };
-
-            // return axios.post("http://localhost:5000/upload", bodyFormData, config)
-
             try {
-
-                request.send(bodyFormData)
-                // let response = await fetch(apiUrl, options);
-                // let result = await response.json();
+                let response = await fetch(apiUrl, options);
+                let result = await response.json();
 
                 console.log("Todo ok! Se subió el archivo")
                 // console.log(result)
 
-                // cambiarEstado({sincro: true})
+                cambiarEstado({sincro: true})
 
                 var myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/json");
@@ -439,7 +430,7 @@ export default class Grabar extends React.Component<Props, State> {
                     .then(response => response.text())
                     .then(result => {
                         console.log("Transcripción: " + JSON.parse(result).transcription)
-                        // cambiarEstado({texto: JSON.parse(result).transcription})
+                        cambiarEstado({texto: JSON.parse(result).transcription})
                     })
                     .catch(error => console.log('error ', error));
             } catch(e) {
