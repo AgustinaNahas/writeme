@@ -1,0 +1,78 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 109.2 70.11">
+	<defs>
+	<style>
+		.cls-1,.cls-2,.cls-3{fill:none;stroke-miterlimit:10;stroke-width:3px;}
+		.cls-1{stroke:#ccc;}
+		.cls-2{stroke:#000;}
+		.cls-3{stroke:#9e005d;}
+		.cls-2{
+			stroke-dasharray: 435;
+			stroke-dashoffset: -435;
+			animation: negro 5s linear infinite;
+		}
+		.cls-3{
+			stroke-dasharray: 164;
+			stroke-dashoffset: -164;
+			animation: magenta 5s linear infinite;
+		}
+
+		@keyframes negro {
+		  	0% {
+				stroke-dashoffset: -435;
+		  	}
+		  	50% {
+		    	stroke-dashoffset: 0;
+		  	}
+		  	100% {
+				stroke-dashoffset: 435;
+		  	}
+		}
+
+		@keyframes magenta {
+		  	0% {
+				stroke-dashoffset: -163;
+				opacity: 0;
+		  	}
+		  	26.9% {
+				opacity: 0;
+				stroke-dashoffset: -163;
+		  	}
+		  	27% {
+				opacity: 1;
+				stroke-dashoffset: -163;
+		  	}
+		  	45% {
+				stroke-dashoffset: 0;
+		  	}
+		  	78% {
+				stroke-dashoffset: 0;
+		  	}
+		  	95.9% {
+				stroke-dashoffset: 163;
+				opacity: 1;
+		  	}
+		  	96.1% {
+				stroke-dashoffset: 163;
+				opacity: 0;
+		  	}
+		  	100% {
+				stroke-dashoffset: 163;
+				opacity: 0;
+		  	}
+		}
+
+
+	</style>
+	</defs>
+	<title>logo-minimalista</title>
+	<g id="gris">
+		<path id="onda-gris" class="cls-1" d="M286.5,85.83h-3.94c-4.11,0-4.11,8.59-8.22,8.59-4.33,0-4.64-15.7-8.9-15.7s-4.6,23.85-8.71,23.85-4.11-25.25-8.23-25.25-4.11,40.13-8.22,40.13S236.13,50.33,232,50.33h0c-4.12,0-4.18,67.12-8.3,67.12s-4.11-57.75-8.22-57.75-4.69,41.36-8.8,41.36-3.54-25-7.65-25-4.11,16.39-8.22,16.39-4.12-8.58-8.23-8.58H177.3" transform="translate(-177.3 -48.83)"/>
+	</g>
+	<g id="negro">
+		<path id="onda-negra" class="cls-2" d="M286.5,85.83h-3.94c-4.11,0-4.11,8.59-8.22,8.59-4.33,0-4.67-15.76-8.92-15.76s-4.58,23.91-8.69,23.91-4.11-25.25-8.23-25.25-4.11,40.13-8.22,40.13S236.13,50.33,232,50.33h0c-4.12,0-4.18,67.12-8.3,67.12s-4.11-57.75-8.22-57.75-4.69,41.36-8.8,41.36-3.54-25-7.65-25-4.11,16.39-8.22,16.39-4.12-8.58-8.23-8.58H177.3" transform="translate(-177.3 -48.83)"/>
+	</g>
+	<g id="magenta">
+		<path id="onda-magenta" class="cls-3" d="M265.42,78.66c-4.11,0-4.58,23.91-8.69,23.91s-4.11-25.25-8.23-25.25-4.11,40.13-8.22,40.13S236.13,50.33,232,50.33" transform="translate(-177.3 -48.83)"/>
+	</g>
+</svg>

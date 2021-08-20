@@ -4,7 +4,7 @@ import {
     StyleSheet,
     View,
 } from "react-native";
-import * as Icons from "./components/Icons";
+import * as Icons from "./Icons";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFF8ED";

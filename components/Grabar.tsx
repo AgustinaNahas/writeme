@@ -11,7 +11,7 @@ import {
 import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Permissions from "expo-permissions";
-import * as Icons from "./components/Icons";
+import * as Icons from "./Icons";
 
 import { TextInput } from 'react-native';
 
@@ -35,6 +35,7 @@ type State = {
     isRecording: boolean;
     fontLoaded: boolean;
     shouldCorrectPitch: boolean;
+    sincro: boolean;
     volume: number;
     rate: number;
     uri: string;
@@ -74,7 +75,8 @@ export default class Grabar extends React.Component<Props, State> {
             uri: "",
             folder: "agus",
             filename: "prueba1",
-            texto: ""
+            texto: "",
+            sincro: false
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -382,35 +384,44 @@ export default class Grabar extends React.Component<Props, State> {
 
         }
 
-        const cambiarTexto = (texto: string) => {
-            this.setState({texto: texto});
+        const cambiarEstado = (estado: State) => {
+            this.setState(estado);
         };
 
         async function uploadAudioAsync(uri: string) {
-
-            let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
-
             const response = await fetch(uri);
             const blobAudio = await response.blob();
 
+            let apiUrl = "http://192.168.0.220:9001/uploads";
+
+            var bodyFormData = new FormData();
+            bodyFormData.append('file', blobAudio);
+            bodyFormData.append('folder', folder);
+
             let options = {
                 method: 'POST',
-                body: blobAudio,
-                headers: {
-                    // 'Accept': 'application/json',
-                    'Content-Type': 'audio/vnd.wave',
-                    'Authorization': 'Bearer ya29.a0ARrdaM8hRQSo_c0yPBBTDc7T19KjOgpRjfVIZyBrpwmJ7ObzyLA4geGXD-iX55OkL-_6IBBaM9BjvGjUxUsVW65uRBsaUO5Qz4jxjgLGxHdAvhIH2hV0jB4IgV4FwHqlqG2ZJHn1LWt6UUV-X6vtTGVP18my'
-                },
+                body: bodyFormData,
+                // headers: { "Content-Type": "multipart/form-data" },
             };
 
+            var request = new XMLHttpRequest()
+            request.open("POST", "http://192.168.0.220:9001/uploads")
+            // request.withCredentials = true
 
+            // const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+            // return axios.post("http://localhost:5000/upload", bodyFormData, config)
 
             try {
-                let response = await fetch(apiUrl, options);
-                let result = await response.json();
+
+                request.send(bodyFormData)
+                // let response = await fetch(apiUrl, options);
+                // let result = await response.json();
 
                 console.log("Todo ok! Se subió el archivo")
                 // console.log(result)
+
+                // cambiarEstado({sincro: true})
 
                 var myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/json");
@@ -428,7 +439,7 @@ export default class Grabar extends React.Component<Props, State> {
                     .then(response => response.text())
                     .then(result => {
                         console.log("Transcripción: " + JSON.parse(result).transcription)
-                        cambiarTexto(JSON.parse(result).transcription)
+                        // cambiarEstado({texto: JSON.parse(result).transcription})
                     })
                     .catch(error => console.log('error ', error));
             } catch(e) {
@@ -469,8 +480,17 @@ export default class Grabar extends React.Component<Props, State> {
 
         return (
             <View style={styles.container}>
-                <View style={[ styles.halfScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
+                <View style={[ styles.quarterScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
                     <View />
+                    <Text
+                        style={[
+                            styles.recordingTimestamp,
+                            { fontFamily: "inter",
+                                fontSize: 20, },
+                        ]}
+                    >
+                        {this.state.sincro ? this.state.filename : ""}
+                    </Text>
                     <View style={styles.recordingContainer}>
                         {/*<View />*/}
                         <TouchableHighlight
@@ -515,46 +535,56 @@ export default class Grabar extends React.Component<Props, State> {
                     <View />
                 </View>
 
-                <View style={{width: "100%"}}>
-                    <Text
-                        style={{ fontFamily: "open-sans",
-                            fontSize: 16, width: "100%", textAlign: "center" }}
-                    >
-                        {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
-
-                    </Text>
-                </View>
-
                 <View style={[
-                    styles.halfScreenContainer,]}>
+                    styles.halfScreenContainer, {
+                        justifyContent: "start"
+                    }]}>
                     <View />
-                    <View style={{ display: 'flex', paddingTop: 20, flexDirection: 'row' }}>
-                        <Text
-                            style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
-                        >
-                            Nombre de la carpeta
-                        </Text>
-                        <TextInput
-                            style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
-                            onChangeText={text => {
-                                this.setState({folder: text})
-                            }}
-                            value={this.state.folder}
-                        />
+                    <View style={{width: "100%", padding: 15  }}>
+                        <View style={{ padding: 15, borderColor: '#CED4DA', borderWidth: 1, borderRadius: 3  }}>
+                            <Text
+                                style={{ fontFamily: "open-sans",
+                                    fontSize: 16, width: "100%", textAlign: "left", height: 120}}
+                            >
+                                {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
+
+                            </Text>
+                        </View>
                     </View>
-                    <View style={{ display: 'flex', paddingTop: 20, flexDirection: 'row' }}>
-                        <Text
-                            style={{ fontFamily: "cutive-mono-regular", width: 150, marginRight: 30, marginLeft: 30 }}
-                        >
-                            Nombre de la carpeta
-                        </Text>
+                    <View style={{ display:
+                            true
+                            // (!this.state.isRecording && this.state.recordingDuration)
+                            ? 'flex' : "none", flexDirection: 'row', paddingLeft: 15, paddingRight: 15 }}>
                         <TextInput
-                            style={{ height: 40, borderColor: 'gray', borderWidth: 1, width: 150  }}
+                            style={{ height: 40, borderColor: '#CED4DA', borderWidth: 1, width: "75%", padding: 6, borderRadius: 3  }}
                             onChangeText={text => {
                                 this.setState({filename: text})
                             }}
                             value={this.state.filename}
                         />
+                        <View
+                            style={{ width: "25%", flex: 1, justifyContent: "space-between", alignItems: "center", flexDirection: "row",
+                                marginLeft: 15, marginRight: 15}}
+                        >
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                // onPress={this._onRecordPressed}
+                                disabled={this.state.isLoading}
+                            >
+                                <Image style={{ width: 20, height: 20 }}
+                                       source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACvSURBVHgBrZXRDYAgDEQrEziiG8gGdkNHQhE0BgVKe5fwA+S9hLSUKGUmcivhsiTmA5/2c4VTspE5kRFZkZkkS94IdskDz4v8fcJ2yQfO5Q2DpA83SORwhWQcPiDRwwUSO7whwcErEiy8IZHBHYnigmxPlfLNUd/KL/x6FgZJmtVilYhKUSsZqvNRiaqJWCgxdSh3JJD255rEA+AVyTX830Mf8rdwOfSzJNlA8Tf8ABlEoChg1GBoAAAAAElFTkSuQmCC"}}
+                                />
+                            </TouchableHighlight>
+                            <TouchableHighlight
+                                underlayColor={BACKGROUND_COLOR}
+                                onPress={this._sendRecording}
+                                disabled={this.state.isLoading}
+                            >
+                                <Image style={{ width: 20, height: 20 }}
+                                       source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEISURBVHgBtZbhDYIwEIVfCf91BEbQCdQNHAEnUCfATWQDRqBOoE4gG6gLWFsoGJDTU9ovaWhK8x69Xq8AQASIXDc1sF211gTviMyBOGkiqhclBaAk/mOsdZa2f9M6C/081R7WHXsMY0esxJlBr0lITIyBYAYWj1XbwHyrSFCFLQexgpS/sb00iRPAD/e648uggdqDdEDKsgwkHOE9REyDYK0z4mIz44iyfrH5dtCChKg50QfR9Ic0VXHPoD5E2IABJ0QRMT6CIwNJjB/gxkBtUZbgFqYUp2AQMuZoMTVFFXMTljNXnGtgKMDc1C7eD1rnyhQSTlBzvLLPyR8FdVdksE6ZB/HcaD8BTO2eEWgu1rgAAAAASUVORK5CYII="}}
+                                />
+                            </TouchableHighlight>
+                        </View>
 
                     </View>
                 </View>
@@ -562,7 +592,7 @@ export default class Grabar extends React.Component<Props, State> {
 
                 <View
                     style={[
-                        styles.halfScreenContainer,
+                        styles.quarterScreenContainer,
                         {
                             opacity:
                                 !this.state.isPlaybackAllowed || this.state.isLoading
@@ -695,13 +725,10 @@ export default class Grabar extends React.Component<Props, State> {
                     onPress={() => this.props.navigation.navigate('Lista grabaciones')}
                     style={styles.touchableOpacityStyle}>
                     <Image
-                        //We are making FAB using TouchableOpacity with an image
-                        //We are using online image here
                         source={{
                             uri:
                                 'https://img.icons8.com/material-outlined/24/000000/edit-folder.png',
                         }}
-                        //You can use you project image Example below
                         //source={require('./images/float-add-icon.png')}
                         style={styles.floatingButtonStyle}
                     />
@@ -712,10 +739,6 @@ export default class Grabar extends React.Component<Props, State> {
 }
 
 const styles = StyleSheet.create({
-    // emptyContainer: {
-    //   alignSelf: "stretch",
-    //   backgroundColor: "green",
-    // },
     container: {
         flex: 1,
         flexDirection: "column",
@@ -759,6 +782,16 @@ const styles = StyleSheet.create({
         height: 30,
     },
     halfScreenContainer: {
+        flex: 1,
+        flexDirection: "column",
+        justifyContent: "space-between",
+        // alignItems: "center",
+        alignSelf: "stretch",
+        minHeight: (DEVICE_HEIGHT - 64) / 2,
+        maxHeight: (DEVICE_HEIGHT - 64) / 2,
+        marginTop: 0
+    },
+    quarterScreenContainer: {
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
@@ -812,7 +845,7 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
     },
     recordingTimestamp: {
-        paddingLeft: 20,
+        // paddingLeft: 20,
     },
     playbackTimestamp: {
         textAlign: "right",

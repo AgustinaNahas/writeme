@@ -2,17 +2,18 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="571971c3-e43e-49c3-8417-3e393133d226" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/components/Logo.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/SvgComponent.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/config/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/config/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/helpers/helpers.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/helpers/helpers.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/writeme.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/writeme.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Grabar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Grabar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Grabar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Grabar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ListaGrabaciones.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ListaGrabaciones.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -59,6 +60,7 @@
       <recent name="$PROJECT_DIR$/assets/images" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/components" />
       <recent name="$PROJECT_DIR$/../uploadit/config" />
       <recent name="$PROJECT_DIR$/../writeme-express" />
     </key>
@@ -88,7 +90,13 @@
       <workItem from="1625695895632" duration="1891000" />
       <workItem from="1626127600687" duration="5977000" />
       <workItem from="1626137688731" duration="17357000" />
-      <workItem from="1626215622260" duration="7843000" />
+      <workItem from="1626215622260" duration="12509000" />
+      <workItem from="1626387922346" duration="6810000" />
+      <workItem from="1626452129537" duration="20000" />
+      <workItem from="1626822185082" duration="471000" />
+      <workItem from="1627511998003" duration="1446000" />
+      <workItem from="1628627824227" duration="6734000" />
+      <workItem from="1629239501970" duration="1928000" />
     </task>
     <servers />
   </component>
