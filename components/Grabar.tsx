@@ -109,6 +109,7 @@ export default class Grabar extends React.Component<Props, State> {
 
     private _askForPermissions = async () => {
         const response = await Permissions.askAsync(Permissions.AUDIO_RECORDING);
+        const permission = await MediaLibrary.getPermissionsAsync();
         this.setState({
             haveRecordingPermissions: response.status === "granted",
         });
@@ -362,10 +363,16 @@ export default class Grabar extends React.Component<Props, State> {
         return `${this._getMMSSFromMillis(0)}`;
     }
 
+    private cambiarEstado(estado: State) {
+        this.setState(estado);
+    };
+
     private _sendRecording = async () => {
         console.log("_sendRecording")
 
         const {folder, filename} = this.state;
+
+        const here = this;
 
         if (!this.recording) {
             console.log("Press F")
@@ -378,61 +385,53 @@ export default class Grabar extends React.Component<Props, State> {
             }
         }
 
+
         if (this.state != null) {
             let uri = this.state.uri;
             await uploadAudioAsync(uri);
 
         }
 
-        const cambiarEstado = (estado) => {
-            this.setState(estado);
-        };
-
         async function uploadAudioAsync(uri: string) {
 
-            let apiUrl = 'https://storage.googleapis.com/upload/storage/v1/b/ringed-enigma-314221.appspot.com/o?uploadType=media&name=' + folder + "/" + filename + ".wav";
+            let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
 
-            const response = await fetch(uri);
-            const blobAudio = await response.blob();
+            console.log(fileBase64)
+
+            let apiUrl = "http://writeme-api.herokuapp.com/transcript";
+
+            var data = {
+                "folder": folder,
+                "type": "audio/mpeg",
+                "extension": "wav",
+                "file": fileBase64
+            }
 
             let options = {
                 method: 'POST',
-                body: blobAudio,
+                body: JSON.stringify(data),
                 headers: {
-                    // 'Accept': 'application/json',
-                    'Content-Type': 'audio/vnd.wave',
-                    'Authorization': 'Bearer algoalgoalgo'
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 },
             };
+
+
+            console.log(options)
 
             try {
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
 
                 console.log("Todo ok! Se subió el archivo")
-                // console.log(result)
+                console.log(result)
 
-                cambiarEstado({sincro: true})
+                if (result.status === "ok"){
+                    console.log(result.status)
+                    console.log(result.transcription)
+                    here.setState({texto: result.transcription});
+                }
 
-                var myHeaders = new Headers();
-                myHeaders.append("Content-Type", "application/json");
-
-                var raw = JSON.stringify({"name": filename + ".wav"});
-
-                var requestOptions = {
-                    method: 'POST',
-                    headers: myHeaders,
-                    body: raw,
-                    redirect: 'follow'
-                };
-
-                fetch("http://writeme-api.herokuapp.com/transcript", requestOptions)
-                    .then(response => response.text())
-                    .then(result => {
-                        console.log("Transcripción: " + JSON.parse(result).transcription)
-                        cambiarEstado({texto: JSON.parse(result).transcription})
-                    })
-                    .catch(error => console.log('error ', error));
             } catch(e) {
                 console.log("Press F")
                 console.log(e);
@@ -544,8 +543,8 @@ export default class Grabar extends React.Component<Props, State> {
                     </View>
                     <View style={{ display:
                             true
-                            // (!this.state.isRecording && this.state.recordingDuration)
-                            ? 'flex' : "none", flexDirection: 'row', paddingLeft: 15, paddingRight: 15 }}>
+                                // (!this.state.isRecording && this.state.recordingDuration)
+                                ? 'flex' : "none", flexDirection: 'row', paddingLeft: 15, paddingRight: 15 }}>
                         <TextInput
                             style={{ height: 40, borderColor: '#CED4DA', borderWidth: 1, width: "75%", padding: 6, borderRadius: 3  }}
                             onChangeText={text => {
