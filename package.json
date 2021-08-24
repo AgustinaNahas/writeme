@@ -27,7 +27,8 @@
     "react-native-svg": "^12.1.1",
     "react-native-tinymce": "^0.1.2",
     "react-native-webview": "^11.6.5",
-    "react-navigation": "^4.4.4"
+    "react-navigation": "^4.4.4",
+    "expo-document-picker": "~9.2.4"
   },
   "devDependencies": {
     "@babel/core": "~7.9.0",

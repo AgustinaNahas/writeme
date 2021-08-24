@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
-import * as Permissions from "expo-permissions";
 import * as Icons from "./Icons";
+
+import * as DocumentPicker from 'expo-document-picker';
+// import { DocumentPicker, ImagePicker } from 'expo';
 
 import { TextInput } from 'react-native';
 
@@ -43,6 +45,10 @@ type State = {
     filename: string;
     texto: string;
 };
+//
+// class AudioCustom {
+//     audioClip = new Audio.Sound();
+// }
 
 export default class Grabar extends React.Component<Props, State> {
     private recording: Audio.Recording | null;
@@ -108,11 +114,17 @@ export default class Grabar extends React.Component<Props, State> {
     }
 
     private _askForPermissions = async () => {
-        const response = await Permissions.askAsync(Permissions.AUDIO_RECORDING);
-        const permission = await MediaLibrary.getPermissionsAsync();
-        this.setState({
-            haveRecordingPermissions: response.status === "granted",
-        });
+        try {
+            console.log('Requesting permissions..');
+            await Audio.requestPermissionsAsync();
+            this.setState({
+                haveRecordingPermissions: true,
+            });
+
+        } catch (err) {
+            console.error('Failed to start recording', err);
+        }
+
     };
 
     private _updateScreenForSoundStatus = (status: AVPlaybackStatus) => {
@@ -442,6 +454,38 @@ export default class Grabar extends React.Component<Props, State> {
 
     }
 
+    private _loadFile = async () => {
+
+        try {
+            const result = await DocumentPicker.getDocumentAsync({});
+
+            console.log(result.uri)
+
+            const audioClip = await Audio.Sound.createAsync(
+                { uri: result.uri }, {}, this._updateScreenForSoundStatus);
+
+            console.log(audioClip.sound)
+
+            this.sound = audioClip.sound;
+            const here = this;
+
+            await this.sound.getStatusAsync().then(function(results) {
+                here.setState({
+                    isLoading: false,
+                    recordingDuration: results.durationMillis,
+                    soundDuration: results.durationMillis,
+                    uri: result.uri
+                });
+            });
+            console.log(audioClip.sound)
+
+            // await this.sound.playAsync();
+        } catch(e){
+            console.log("Todo salió horriblemente mal")
+        }
+
+    }
+
 
     render() {
 
@@ -561,7 +605,7 @@ export default class Grabar extends React.Component<Props, State> {
                                 // onPress={this._onRecordPressed}
                                 disabled={this.state.isLoading}
                             >
-                                <Image style={{ width: 20, height: 20 }}
+                                <Image style={{ width: 25, height: 25 }}
                                        source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACvSURBVHgBrZXRDYAgDEQrEziiG8gGdkNHQhE0BgVKe5fwA+S9hLSUKGUmcivhsiTmA5/2c4VTspE5kRFZkZkkS94IdskDz4v8fcJ2yQfO5Q2DpA83SORwhWQcPiDRwwUSO7whwcErEiy8IZHBHYnigmxPlfLNUd/KL/x6FgZJmtVilYhKUSsZqvNRiaqJWCgxdSh3JJD255rEA+AVyTX830Mf8rdwOfSzJNlA8Tf8ABlEoChg1GBoAAAAAElFTkSuQmCC"}}
                                 />
                             </TouchableHighlight>
@@ -570,7 +614,7 @@ export default class Grabar extends React.Component<Props, State> {
                                 onPress={this._sendRecording}
                                 disabled={this.state.isLoading}
                             >
-                                <Image style={{ width: 20, height: 20 }}
+                                <Image style={{ width: 25, height: 25 }}
                                        source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEISURBVHgBtZbhDYIwEIVfCf91BEbQCdQNHAEnUCfATWQDRqBOoE4gG6gLWFsoGJDTU9ovaWhK8x69Xq8AQASIXDc1sF211gTviMyBOGkiqhclBaAk/mOsdZa2f9M6C/081R7WHXsMY0esxJlBr0lITIyBYAYWj1XbwHyrSFCFLQexgpS/sb00iRPAD/e648uggdqDdEDKsgwkHOE9REyDYK0z4mIz44iyfrH5dtCChKg50QfR9Ic0VXHPoD5E2IABJ0QRMT6CIwNJjB/gxkBtUZbgFqYUp2AQMuZoMTVFFXMTljNXnGtgKMDc1C7eD1rnyhQSTlBzvLLPyR8FdVdksE6ZB/HcaD8BTO2eEWgu1rgAAAAASUVORK5CYII="}}
                                 />
                             </TouchableHighlight>
@@ -723,6 +767,19 @@ export default class Grabar extends React.Component<Props, State> {
                         style={styles.floatingButtonStyle}
                     />
                 </TouchableOpacity>
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={this._loadFile}
+                    style={styles.touchableOpacityStyle2}>
+                    <Image
+                        source={{
+                            uri:
+                                'https://img.icons8.com/material-outlined/24/000000/edit-folder.png',
+                        }}
+                        //source={require('./images/float-add-icon.png')}
+                        style={styles.floatingButtonStyle}
+                    />
+                </TouchableOpacity>
             </View>
         );
     }
@@ -759,7 +816,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         right: 30,
-        bottom: 50,
+        bottom: 100,
+        borderRadius: 100,
+        borderWidth: 2,
+        borderColor: "black",
+        backgroundColor:'white',
+        padding: 30
+    },
+    touchableOpacityStyle2: {
+        position: 'absolute',
+        width: 50,
+        height: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        right: 150,
+        bottom: 100,
         borderRadius: 100,
         borderWidth: 2,
         borderColor: "black",
