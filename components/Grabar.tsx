@@ -44,11 +44,8 @@ type State = {
     folder: string;
     filename: string;
     texto: string;
+    isConverting: boolean;
 };
-//
-// class AudioCustom {
-//     audioClip = new Audio.Sound();
-// }
 
 export default class Grabar extends React.Component<Props, State> {
     private recording: Audio.Recording | null;
@@ -82,7 +79,8 @@ export default class Grabar extends React.Component<Props, State> {
             folder: "agus",
             filename: "prueba1",
             texto: "",
-            sincro: false
+            sincro: false,
+            isConverting: false
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -217,7 +215,7 @@ export default class Grabar extends React.Component<Props, State> {
             // the output file is invalid.
             if (error.code === "E_AUDIO_NODATA") {
                 console.log(
-                    `Stop was called too quickly, no data has yet been received (${error.message})`
+                    `ERROR: Stop was called too quickly, no data has yet been received (${error.message})`
                 );
             } else {
                 console.log("STOP ERROR: ", error.code, error.name, error.message);
@@ -375,10 +373,6 @@ export default class Grabar extends React.Component<Props, State> {
         return `${this._getMMSSFromMillis(0)}`;
     }
 
-    private cambiarEstado(estado: State) {
-        this.setState(estado);
-    };
-
     private _sendRecording = async () => {
         console.log("_sendRecording")
 
@@ -387,12 +381,12 @@ export default class Grabar extends React.Component<Props, State> {
         const here = this;
 
         if (!this.recording) {
-            console.log("Press F")
+            console.log("ERROR: No recording")
         } else {
             try {
                 await this.recording.stopAndUnloadAsync();
             } catch (error) {
-                console.log("Press F")
+                console.log("ERROR: Can't unload async")
                 console.log(error);
             }
         }
@@ -406,17 +400,21 @@ export default class Grabar extends React.Component<Props, State> {
 
         async function uploadAudioAsync(uri: string) {
 
-            let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
+            here.setState({isConverting: true});
 
-            console.log(fileBase64)
+            let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
+            // console.log(fileBase64)
+
+            let extension = uri.split('.')[uri.split('.').length - 1];
 
             let apiUrl = "http://writeme-api.herokuapp.com/transcript";
 
             var data = {
                 "folder": folder,
                 "type": "audio/mpeg",
-                "extension": "wav",
-                "file": fileBase64
+                "extension": extension,
+                "file": fileBase64,
+                filename: filename
             }
 
             let options = {
@@ -427,22 +425,21 @@ export default class Grabar extends React.Component<Props, State> {
                     'Content-Type': 'application/json'
                 },
             };
-
-
-            console.log(options)
+            // console.log(options)
 
             try {
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
 
-                console.log("Todo ok! Se subió el archivo")
-                console.log(result)
-
                 if (result.status === "ok"){
+                    console.log("Todo ok! Se subió el archivo")
                     console.log(result.status)
                     console.log(result.transcription)
-                    here.setState({texto: result.transcription});
+                } else {
+                    console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
                 }
+
+                here.setState({texto: result.transcription, isConverting: false});
 
             } catch(e) {
                 console.log("Press F")
@@ -459,12 +456,12 @@ export default class Grabar extends React.Component<Props, State> {
         try {
             const result = await DocumentPicker.getDocumentAsync({});
 
-            console.log(result.uri)
+            // console.log(result.uri)
 
             const audioClip = await Audio.Sound.createAsync(
                 { uri: result.uri }, {}, this._updateScreenForSoundStatus);
 
-            console.log(audioClip.sound)
+            // console.log(audioClip.sound)
 
             this.sound = audioClip.sound;
             const here = this;
@@ -477,11 +474,11 @@ export default class Grabar extends React.Component<Props, State> {
                     uri: result.uri
                 });
             });
-            console.log(audioClip.sound)
+            // console.log(audioClip.sound)
 
             // await this.sound.playAsync();
         } catch(e){
-            console.log("Todo salió horriblemente mal")
+            console.log("ERROR: Todo salió horriblemente mal y no sabemos por qué")
         }
 
     }
@@ -506,11 +503,6 @@ export default class Grabar extends React.Component<Props, State> {
                 </View>
             );
         }
-
-        const clickHandler = () => {
-            //function to handle click on floating Action Button
-            alert('Floating Button Clicked');
-        };
 
         return (
             <View style={styles.container}>
@@ -603,21 +595,25 @@ export default class Grabar extends React.Component<Props, State> {
                             <TouchableHighlight
                                 underlayColor={BACKGROUND_COLOR}
                                 // onPress={this._onRecordPressed}
-                                disabled={this.state.isLoading}
+                                disabled={this.state.isConverting}
                             >
-                                <Image style={{ width: 25, height: 25 }}
+                                <Image style={{ width: 25, height: 25, display: !this.state.isConverting ? "flex" : "none" }}
                                        source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACvSURBVHgBrZXRDYAgDEQrEziiG8gGdkNHQhE0BgVKe5fwA+S9hLSUKGUmcivhsiTmA5/2c4VTspE5kRFZkZkkS94IdskDz4v8fcJ2yQfO5Q2DpA83SORwhWQcPiDRwwUSO7whwcErEiy8IZHBHYnigmxPlfLNUd/KL/x6FgZJmtVilYhKUSsZqvNRiaqJWCgxdSh3JJD255rEA+AVyTX830Mf8rdwOfSzJNlA8Tf8ABlEoChg1GBoAAAAAElFTkSuQmCC"}}
                                 />
                             </TouchableHighlight>
                             <TouchableHighlight
                                 underlayColor={BACKGROUND_COLOR}
                                 onPress={this._sendRecording}
-                                disabled={this.state.isLoading}
+                                disabled={this.state.isConverting}
                             >
-                                <Image style={{ width: 25, height: 25 }}
+                                <Image style={{ width: 25, height: 25, display: !this.state.isConverting ? "flex" : "none" }}
                                        source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEISURBVHgBtZbhDYIwEIVfCf91BEbQCdQNHAEnUCfATWQDRqBOoE4gG6gLWFsoGJDTU9ovaWhK8x69Xq8AQASIXDc1sF211gTviMyBOGkiqhclBaAk/mOsdZa2f9M6C/081R7WHXsMY0esxJlBr0lITIyBYAYWj1XbwHyrSFCFLQexgpS/sb00iRPAD/e648uggdqDdEDKsgwkHOE9REyDYK0z4mIz44iyfrH5dtCChKg50QfR9Ic0VXHPoD5E2IABJ0QRMT6CIwNJjB/gxkBtUZbgFqYUp2AQMuZoMTVFFXMTljNXnGtgKMDc1C7eD1rnyhQSTlBzvLLPyR8FdVdksE6ZB/HcaD8BTO2eEWgu1rgAAAAASUVORK5CYII="}}
                                 />
                             </TouchableHighlight>
+                            <Image style={{ width: 25, height: 25, display: this.state.isConverting ? "flex" : "none" }}
+                                source={{uri:
+                                        'https://img.icons8.com/fluency-systems-filled/48/000000/dots-loading.png'}}
+                            />
                         </View>
 
                     </View>

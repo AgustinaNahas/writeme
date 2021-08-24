@@ -8,10 +8,7 @@
       <change beforePath="$PROJECT_DIR$/../uploadit/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/Grabar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Grabar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +93,7 @@
       <workItem from="1629239501970" duration="1928000" />
       <workItem from="1629472058615" duration="455000" />
       <workItem from="1629731959274" duration="5490000" />
-      <workItem from="1629750656461" duration="8661000" />
+      <workItem from="1629750656461" duration="12863000" />
     </task>
     <servers />
   </component>
