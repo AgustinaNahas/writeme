@@ -373,6 +373,20 @@ export default class Grabar extends React.Component<Props, State> {
         return `${this._getMMSSFromMillis(0)}`;
     }
 
+    private getMimeType(extension: string){
+        const arrayMimeTypes = {
+            "wav": "audio/mpeg",
+            // "wav": "audio/audio/x-wav",
+            "m4a": "audio/mp4",
+            "webm": "audio/webm",
+            "midi": "audio/midi",
+            "aac": "audio/aac",
+            "ogg": "audio/ogg",
+        }
+
+        if (arrayMimeTypes[extension] !== undefined) return arrayMimeTypes[extension];
+    }
+
     private _sendRecording = async () => {
         console.log("_sendRecording")
 
@@ -391,7 +405,6 @@ export default class Grabar extends React.Component<Props, State> {
             }
         }
 
-
         if (this.state != null) {
             let uri = this.state.uri;
             await uploadAudioAsync(uri);
@@ -403,18 +416,19 @@ export default class Grabar extends React.Component<Props, State> {
             here.setState({isConverting: true});
 
             let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
-            // console.log(fileBase64)
 
             let extension = uri.split('.')[uri.split('.').length - 1];
 
             let apiUrl = "http://writeme-api.herokuapp.com/transcript";
 
+            let contentType = here.getMimeType(extension);
+
             var data = {
                 "folder": folder,
-                "type": "audio/mpeg",
+                "content_type": contentType,
                 "extension": extension,
-                "file": fileBase64,
-                filename: filename
+                "content": fileBase64,
+                "filename": filename
             }
 
             let options = {
@@ -425,7 +439,6 @@ export default class Grabar extends React.Component<Props, State> {
                     'Content-Type': 'application/json'
                 },
             };
-            // console.log(options)
 
             try {
                 let response = await fetch(apiUrl, options);
