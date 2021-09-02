@@ -17,7 +17,7 @@ export const PLAY_BUTTON = new Icon(
   51
 );
 export const PAUSE_BUTTON = new Icon(
-  require("../assets/images/pause_button.png"),
+  require("../assets/images/play_button.png"),
   34,
   51
 );

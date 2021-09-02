@@ -77,7 +77,7 @@ export default class Grabar extends React.Component<Props, State> {
             rate: 1.0,
             uri: "",
             folder: "agus",
-            filename: "prueba1",
+            filename: "audio",
             texto: "",
             sincro: false,
             isConverting: false
@@ -440,7 +440,22 @@ export default class Grabar extends React.Component<Props, State> {
                 },
             };
 
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
             try {
+
+                // await sleep(2000);
+                //
+                //
+                // const texto= "Gonza: Che, viste que Leo es periodista, ¿no? Bueno, necesita desgrabar una entrevista, y necesitamos una buena app. " +
+                //     "Mica: Sí, ¿tenés una buena app para recomendar, Agus? ";
+                // for (var i=0; i<=texto.length-1; i++){
+                //     await sleep(30);
+                //     here.setState({texto: texto.substring(0, i), isConverting: false});
+                // }
+
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
 
@@ -655,14 +670,14 @@ export default class Grabar extends React.Component<Props, State> {
                             onSlidingComplete={this._onSeekSliderSlidingComplete}
                             disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                         />
-                        <Text
-                            style={[
-                                styles.playbackTimestamp,
-                                { fontFamily: "cutive-mono-regular" },
-                            ]}
-                        >
-                            {this._getPlaybackTimestamp()}
-                        </Text>
+                        {/*<Text*/}
+                        {/*    style={[*/}
+                        {/*        styles.playbackTimestamp,*/}
+                        {/*        { fontFamily: "cutive-mono-regular" },*/}
+                        {/*    ]}*/}
+                        {/*>*/}
+                        {/*    {this._getPlaybackTimestamp()}*/}
+                        {/*</Text>*/}
                     </View>
                     <View
                         style={[styles.buttonsContainerBase, styles.buttonsContainerTopRow]}
@@ -718,46 +733,47 @@ export default class Grabar extends React.Component<Props, State> {
                             </TouchableHighlight>
                         </View>
                         <View>
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                onPress={this._sendRecording}
-                            >
-                                <Image
-                                    style={styles.image}
-                                    source={{
-                                        uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',
-                                    }}
-                                />
-                                {/*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*/}
-                            </TouchableHighlight>
+                            {/*<TouchableHighlight*/}
+                            {/*    underlayColor={BACKGROUND_COLOR}*/}
+                            {/*    onPress={this._sendRecording}*/}
+                            {/*>*/}
+                            {/*    <Image*/}
+                            {/*        style={styles.image}*/}
+                            {/*        source={{*/}
+                            {/*            uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',*/}
+                            {/*        }}*/}
+                            {/*    />*/}
+                            {/*    /!*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*!/*/}
+                            {/*</TouchableHighlight>*/}
                         </View>
                         <View />
                     </View>
                     <View
                         style={[
-                            styles.buttonsContainerBase,
-                            styles.buttonsContainerBottomRow,
+                            {
+                                height: 100
+                            }
                         ]}
                     >
-                        <Text style={styles.timestamp}>Rate:</Text>
-                        <Slider
-                            style={styles.rateSlider}
-                            trackImage={Icons.TRACK_1.module}
-                            thumbImage={Icons.THUMB_1.module}
-                            value={this.state.rate / RATE_SCALE}
-                            onSlidingComplete={this._onRateSliderSlidingComplete}
-                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                        />
-                        <TouchableHighlight
-                            underlayColor={BACKGROUND_COLOR}
-                            style={styles.wrapper}
-                            onPress={this._onPitchCorrectionPressed}
-                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                        >
-                            <Text style={[{ fontFamily: "cutive-mono-regular" }]}>
-                                PC: {this.state.shouldCorrectPitch ? "yes" : "no"}
-                            </Text>
-                        </TouchableHighlight>
+                        {/*<Text style={styles.timestamp}>Rate:</Text>*/}
+                        {/*<Slider*/}
+                        {/*    style={styles.rateSlider}*/}
+                        {/*    trackImage={Icons.TRACK_1.module}*/}
+                        {/*    thumbImage={Icons.THUMB_1.module}*/}
+                        {/*    value={this.state.rate / RATE_SCALE}*/}
+                        {/*    onSlidingComplete={this._onRateSliderSlidingComplete}*/}
+                        {/*    disabled={!this.state.isPlaybackAllowed || this.state.isLoading}*/}
+                        {/*/>*/}
+                        {/*<TouchableHighlight*/}
+                        {/*    underlayColor={BACKGROUND_COLOR}*/}
+                        {/*    style={styles.wrapper}*/}
+                        {/*    onPress={this._onPitchCorrectionPressed}*/}
+                        {/*    disabled={!this.state.isPlaybackAllowed || this.state.isLoading}*/}
+                        {/*>*/}
+                        {/*    <Text style={[{ fontFamily: "cutive-mono-regular" }]}>*/}
+                        {/*        PC: {this.state.shouldCorrectPitch ? "yes" : "no"}*/}
+                        {/*    </Text>*/}
+                        {/*</TouchableHighlight>*/}
                     </View>
                     <View />
 
@@ -783,7 +799,7 @@ export default class Grabar extends React.Component<Props, State> {
                     <Image
                         source={{
                             uri:
-                                'https://img.icons8.com/material-outlined/24/000000/edit-folder.png',
+                                'https://img.icons8.com/material-outlined/24/000000/add-file.png',
                         }}
                         //source={require('./images/float-add-icon.png')}
                         style={styles.floatingButtonStyle}
@@ -820,31 +836,31 @@ const styles = StyleSheet.create({
     },
     touchableOpacityStyle: {
         position: 'absolute',
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
         right: 30,
-        bottom: 100,
+        bottom: 30,
         borderRadius: 100,
         borderWidth: 2,
         borderColor: "black",
         backgroundColor:'white',
-        padding: 30
+        padding: 24
     },
     touchableOpacityStyle2: {
         position: 'absolute',
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        right: 150,
-        bottom: 100,
+        right: 90,
+        bottom: 30,
         borderRadius: 100,
         borderWidth: 2,
         borderColor: "black",
         backgroundColor:'white',
-        padding: 30
+        padding: 24
     },
     floatingButtonStyle: {
         resizeMode: 'contain',

@@ -2,13 +2,29 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="571971c3-e43e-49c3-8417-3e393133d226" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/assets/images/old/play_button222@1x.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/old/play_button222@2x.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/old/thumb_1@1x.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/old/thumb_1@2x.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/old/thumb_2@1x.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/images/old/thumb_2@2x.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/config/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/config/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/helpers/helpers.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/helpers/helpers.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../uploadit/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../uploadit/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/play_button@1x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/play_button@1x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/play_button@2x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/play_button@2x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_1@1x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/thumb_1@1x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_1@2x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/thumb_1@2x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_1@3x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/old/thumb_1@3x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_2@1x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/thumb_2@1x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_2@2x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/thumb_2@2x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/images/thumb_2@3x.png" beforeDir="false" afterPath="$PROJECT_DIR$/assets/images/old/thumb_2@3x.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/Grabar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Grabar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Icons.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Icons.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +56,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="dart.analysis.tool.window.visible" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/assets/images" />
     <property name="nodejs_package_manager_path" value="yarn" />
     <property name="settings.editor.selected.configurable" value="configurable.group.appearance" />
     <property name="ts.external.directory.path" value="$PROJECT_DIR$/node_modules/typescript/lib" />
@@ -48,12 +64,15 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/assets/images" />
+      <recent name="$PROJECT_DIR$/assets/images/old" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/../uploadit" />
       <recent name="$PROJECT_DIR$/../writeme-sr" />
-      <recent name="$PROJECT_DIR$/assets/images" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/assets/images" />
+      <recent name="$PROJECT_DIR$/assets/images/old" />
       <recent name="$PROJECT_DIR$/components" />
       <recent name="$PROJECT_DIR$/../uploadit/config" />
       <recent name="$PROJECT_DIR$/../writeme-express" />
@@ -94,6 +113,12 @@
       <workItem from="1629472058615" duration="455000" />
       <workItem from="1629731959274" duration="5490000" />
       <workItem from="1629750656461" duration="12863000" />
+      <workItem from="1629991717577" duration="609000" />
+      <workItem from="1630358385712" duration="17000" />
+      <workItem from="1630417253342" duration="298000" />
+      <workItem from="1630446741619" duration="2080000" />
+      <workItem from="1630610869201" duration="3411000" />
+      <workItem from="1630620711564" duration="1303000" />
     </task>
     <servers />
   </component>

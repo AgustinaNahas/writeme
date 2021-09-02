@@ -40,7 +40,7 @@ function App() {
   return (
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Home">
-          <Stack.Screen name="Grabar" component={fonts ? Grabar : Loading} />
+          <Stack.Screen name="WriteMe" component={fonts ? Grabar : Loading} />
           <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
         </Stack.Navigator>
       </NavigationContainer>
