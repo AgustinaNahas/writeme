@@ -397,8 +397,6 @@ export default class Grabar extends React.Component<Props, State> {
     private _sendRecording = async () => {
         console.log("_sendRecording")
 
-        this.state.textRef.current?.onLoad("Cosassss");
-
         const {folder, filename} = this.state;
 
         const here = this;
