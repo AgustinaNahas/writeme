@@ -8,10 +8,6 @@
     "orientation": "portrait",
     "primaryColor": "#cccccc",
     "icon": "./assets/icons/icon.png",
-    "loading": {
-      "hideExponentText": false,
-      "icon": "./assets/icons/icon.png"
-    },
     "ios": {
       "supportsTablet": true
     },

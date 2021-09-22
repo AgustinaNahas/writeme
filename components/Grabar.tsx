@@ -1,7 +1,7 @@
 import React from "react";
 import {
     Dimensions,
-    Image,
+    Image, SafeAreaView, ScrollView,
     Slider,
     StyleSheet,
     Text,
@@ -12,10 +12,15 @@ import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Icons from "./Icons";
 
+import { RichTextEditor, RichTextEditorRef } from './richtext/RichTextEditor'
+import { RichTextEditorToolbar } from './richtext/RichTextEditorToolbar'
+
 import * as DocumentPicker from 'expo-document-picker';
-// import { DocumentPicker, ImagePicker } from 'expo';
+
+import { WebView } from 'react-native-webview';
 
 import { TextInput } from 'react-native';
+import Editor from "./Editor";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -45,6 +50,7 @@ type State = {
     filename: string;
     texto: string;
     isConverting: boolean;
+    textRef: any;
 };
 
 export default class Grabar extends React.Component<Props, State> {
@@ -80,7 +86,8 @@ export default class Grabar extends React.Component<Props, State> {
             filename: "audio",
             texto: "",
             sincro: false,
-            isConverting: false
+            isConverting: false,
+            textRef: undefined
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -390,6 +397,8 @@ export default class Grabar extends React.Component<Props, State> {
     private _sendRecording = async () => {
         console.log("_sendRecording")
 
+        this.state.textRef.current?.onLoad("Cosassss");
+
         const {folder, filename} = this.state;
 
         const here = this;
@@ -445,20 +454,8 @@ export default class Grabar extends React.Component<Props, State> {
             }
 
             try {
-
-                // await sleep(2000);
-                //
-                //
-                // const texto= "Gonza: Che, viste que Leo es periodista, ¿no? Bueno, necesita desgrabar una entrevista, y necesitamos una buena app. " +
-                //     "Mica: Sí, ¿tenés una buena app para recomendar, Agus? ";
-                // for (var i=0; i<=texto.length-1; i++){
-                //     await sleep(30);
-                //     here.setState({texto: texto.substring(0, i), isConverting: false});
-                // }
-
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
-
                 if (result.status === "ok"){
                     console.log("Todo ok! Se subió el archivo")
                     console.log(result.status)
@@ -511,6 +508,10 @@ export default class Grabar extends React.Component<Props, State> {
 
     }
 
+    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
+        var richTextEditorRef = React.createRef<RichTextEditorRef>()
+        console.log(richTextEditorRef)
+    }
 
     render() {
 
@@ -531,6 +532,7 @@ export default class Grabar extends React.Component<Props, State> {
                 </View>
             );
         }
+
 
         return (
             <View style={styles.container}>
@@ -588,23 +590,14 @@ export default class Grabar extends React.Component<Props, State> {
                     </View>
                     <View />
                 </View>
+                    <Text
+                        style={{ fontFamily: "open-sans",
+                            fontSize: 16, width: "100%", textAlign: "left", height: 120}}
+                    >
+                        {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
+                    </Text>
 
-                <View style={[
-                    styles.halfScreenContainer, {
-                        justifyContent: "start"
-                    }]}>
-                    <View />
-                    <View style={{width: "100%", padding: 15  }}>
-                        <View style={{ padding: 15, borderColor: '#CED4DA', borderWidth: 1, borderRadius: 3  }}>
-                            <Text
-                                style={{ fontFamily: "open-sans",
-                                    fontSize: 16, width: "100%", textAlign: "left", height: 120}}
-                            >
-                                {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
-
-                            </Text>
-                        </View>
-                    </View>
+                    <Editor mensaje={"ALGO ALGO ALGO"}/>
                     <View style={{ display:
                             true
                                 // (!this.state.isRecording && this.state.recordingDuration)
@@ -645,7 +638,6 @@ export default class Grabar extends React.Component<Props, State> {
                         </View>
 
                     </View>
-                </View>
 
 
                 <View
@@ -733,18 +725,6 @@ export default class Grabar extends React.Component<Props, State> {
                             </TouchableHighlight>
                         </View>
                         <View>
-                            {/*<TouchableHighlight*/}
-                            {/*    underlayColor={BACKGROUND_COLOR}*/}
-                            {/*    onPress={this._sendRecording}*/}
-                            {/*>*/}
-                            {/*    <Image*/}
-                            {/*        style={styles.image}*/}
-                            {/*        source={{*/}
-                            {/*            uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIieXUTW9NURQG4Ke3Js01MaoU8RkiZgQV8RGEmYFJTfwTpQYmYiKI3l9QZj5/gbGJP0CbkEpEqjRcwTE4a+ece5z70evOvMnJzn73Wu979tprb/4HTOIqXmEFa3iNm5j6V/FL+Iisy/cZl4cVv4ifIfQCZ7EJTZzG41j7jZlBRU/hEd5FYoZrPeJvKHYy2Ut4A+b9XYKnGOuRNybfXRZmXZHE1zCL3RgP4344oyjVYmhtLwecLIlPDyBYxQR+6dz5F5xPAQ+DnB1CPGFLGB3G89BbxQ7yA83kZRkVksk8tGMyMUKDI6G5CO9jcmCEBhtDs93AyyCv9EjYiVb6owGwN8ZlOBFu3+S3tYoL+KrokIRy18yV+AaeBH8nkfeDaOMWtga/S94NWSQdrTH4HjuEPXim5naP414pKb0trZJ49UZneBtjK7iZmH/CsZpqOI4FeV/DUiQcrImdw6FYXwpuCret4xn/EQLNLutNRWlr0ehj8CHGfToPMmF/jMt9dLrirs5aV38uHeiDYQ02y9u32qLTiudgReX1XA+u6+z3hDRfxblhxXvhjfzubOsX+Adcb4oyKRiOmgAAAABJRU5ErkJggg==',*/}
-                            {/*        }}*/}
-                            {/*    />*/}
-                            {/*    /!*<Image style={styles.image} source={Icons.STOP_BUTTON.module} />*!/*/}
-                            {/*</TouchableHighlight>*/}
                         </View>
                         <View />
                     </View>
@@ -755,29 +735,12 @@ export default class Grabar extends React.Component<Props, State> {
                             }
                         ]}
                     >
-                        {/*<Text style={styles.timestamp}>Rate:</Text>*/}
-                        {/*<Slider*/}
-                        {/*    style={styles.rateSlider}*/}
-                        {/*    trackImage={Icons.TRACK_1.module}*/}
-                        {/*    thumbImage={Icons.THUMB_1.module}*/}
-                        {/*    value={this.state.rate / RATE_SCALE}*/}
-                        {/*    onSlidingComplete={this._onRateSliderSlidingComplete}*/}
-                        {/*    disabled={!this.state.isPlaybackAllowed || this.state.isLoading}*/}
-                        {/*/>*/}
-                        {/*<TouchableHighlight*/}
-                        {/*    underlayColor={BACKGROUND_COLOR}*/}
-                        {/*    style={styles.wrapper}*/}
-                        {/*    onPress={this._onPitchCorrectionPressed}*/}
-                        {/*    disabled={!this.state.isPlaybackAllowed || this.state.isLoading}*/}
-                        {/*>*/}
-                        {/*    <Text style={[{ fontFamily: "cutive-mono-regular" }]}>*/}
-                        {/*        PC: {this.state.shouldCorrectPitch ? "yes" : "no"}*/}
-                        {/*    </Text>*/}
-                        {/*</TouchableHighlight>*/}
+                        <WebView
+                            style={styles.container}
+                            source={{ uri: 'https://expo.dev' }}
+                        />
                     </View>
                     <View />
-
-
                 </View>
                 <TouchableOpacity
                     activeOpacity={0.7}
