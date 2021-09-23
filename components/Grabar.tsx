@@ -21,6 +21,7 @@ import { WebView } from 'react-native-webview';
 
 import { TextInput } from 'react-native';
 import Editor from "./Editor";
+import {findCommand} from "../common/commands";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -116,6 +117,10 @@ export default class Grabar extends React.Component<Props, State> {
 
     componentDidMount() {
         this._askForPermissions();
+
+        var richTextEditorRef = React.createRef<RichTextEditorRef>()
+
+        this.setState({textRef: richTextEditorRef})
     }
 
     private _askForPermissions = async () => {
@@ -462,7 +467,11 @@ export default class Grabar extends React.Component<Props, State> {
                     console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
                 }
 
-                here.setState({texto: result.transcription, isConverting: false});
+                console.log(result.transcription)
+
+                const texto = findCommand(result.transcription, "negrita");
+
+                here.setState({texto: texto, isConverting: false});
 
             } catch(e) {
                 console.log("Press F")
@@ -506,13 +515,7 @@ export default class Grabar extends React.Component<Props, State> {
 
     }
 
-    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
-        var richTextEditorRef = React.createRef<RichTextEditorRef>()
-        console.log(richTextEditorRef)
-    }
-
     render() {
-
         if (!this.state.haveRecordingPermissions) {
             return (
                 <View style={styles.container}>
@@ -531,22 +534,19 @@ export default class Grabar extends React.Component<Props, State> {
             );
         }
 
-
         return (
             <View style={styles.container}>
                 <View style={[ styles.quarterScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
-                    <View />
                     <Text
                         style={[
                             styles.recordingTimestamp,
                             { fontFamily: "inter",
-                                fontSize: 20, },
+                                fontSize: 20, textAlign: "center"},
                         ]}
                     >
-                        {this.state.sincro ? this.state.filename : ""}
+                        {this.state.sincro ? this.state.filename : "ALGO"}
                     </Text>
                     <View style={styles.recordingContainer}>
-                        {/*<View />*/}
                         <TouchableHighlight
                             underlayColor={BACKGROUND_COLOR}
                             style={styles.wrapper}
@@ -557,7 +557,6 @@ export default class Grabar extends React.Component<Props, State> {
                                    source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAB6SURBVHgB7dixCsAgDADRWPr/v2wHp26KyqG5txVEOAgSGiHlVmJaqf/vuuDO/vufOJwBNANoBtDe/qOj7/3u840jRDOAduMrxG6XoxwhmgE0A2gG0Ayg3bgLrd599t7vCNEMoGX6LzT6euw+3zhCNANoBtCOD5Cy+wCzIBNY1+h1FgAAAABJRU5ErkJggg=="}}
                             />
                         </TouchableHighlight>
-                        <View />
                         <View style={styles.recordingDataRowContainer}>
                             <Text
                                 style={[
@@ -569,8 +568,6 @@ export default class Grabar extends React.Component<Props, State> {
                                 {this._getRecordingTimestamp()}
                             </Text>
                         </View>
-                        <View />
-                        <View />
                         <TouchableHighlight
                             underlayColor={BACKGROUND_COLOR}
                             style={styles.wrapper}
@@ -586,16 +583,8 @@ export default class Grabar extends React.Component<Props, State> {
                             />
                         </TouchableHighlight>
                     </View>
-                    <View />
                 </View>
-                    <Text
-                        style={{ fontFamily: "open-sans",
-                            fontSize: 16, width: "100%", textAlign: "left", height: 120}}
-                    >
-                        {this.state.texto ? this.state.texto : "Acá vas a encontrar el texto de la transcripción" }
-                    </Text>
-
-                    <Editor mensaje={"ALGO ALGO ALGO"}/>
+                    <Editor texto={this.state.texto}/>
                     <View style={{ display:
                             true
                                 // (!this.state.isRecording && this.state.recordingDuration)
@@ -636,7 +625,6 @@ export default class Grabar extends React.Component<Props, State> {
                         </View>
 
                     </View>
-
 
                 <View
                     style={[
@@ -726,18 +714,6 @@ export default class Grabar extends React.Component<Props, State> {
                         </View>
                         <View />
                     </View>
-                    <View
-                        style={[
-                            {
-                                height: 100
-                            }
-                        ]}
-                    >
-                        <WebView
-                            style={styles.container}
-                            source={{ uri: 'https://expo.dev' }}
-                        />
-                    </View>
                     <View />
                 </View>
                 <TouchableOpacity
@@ -784,7 +760,6 @@ const styles = StyleSheet.create({
     },
     noPermissionsText: {
         textAlign: "center",
-        borderColor: 'purple', borderWidth: 1,
     },
     wrapper: {
         maxWidth: 50,
@@ -834,8 +809,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         // alignItems: "center",
         alignSelf: "stretch",
-        minHeight: (DEVICE_HEIGHT - 64) / 2,
-        maxHeight: (DEVICE_HEIGHT - 64) / 2,
+        // minHeight: (DEVICE_HEIGHT - 64) / 2,
+        // maxHeight: (DEVICE_HEIGHT - 64) / 2,
         marginTop: 0
     },
     quarterScreenContainer: {
@@ -844,9 +819,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         // alignItems: "center",
         alignSelf: "stretch",
-        minHeight: (DEVICE_HEIGHT - 64) / 4.0,
-        maxHeight: (DEVICE_HEIGHT - 64) / 4.0,
-        marginTop: 0
+        maxHeight: (DEVICE_HEIGHT - 64) / 6,
+        marginTop: 0,
     },
     recordingContainer: {
         flex: 1,
@@ -856,16 +830,17 @@ const styles = StyleSheet.create({
         // alignSelf: "stretch",
         // height: "300px",
         maxHeight: 50,
+        height: 80,
     },
     recordingDataContainer: {
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
         alignItems: "center",
-        minHeight: Icons.RECORD_BUTTON.height,
-        maxHeight: Icons.RECORD_BUTTON.height,
-        minWidth: Icons.RECORD_BUTTON.width * 3.0,
-        maxWidth: Icons.RECORD_BUTTON.width * 3.0,
+        // minHeight: Icons.RECORD_BUTTON.height,
+        // maxHeight: Icons.RECORD_BUTTON.height,
+        // minWidth: Icons.RECORD_BUTTON.width * 3.0,
+        // maxWidth: Icons.RECORD_BUTTON.width * 3.0,
     },
     recordingDataRowContainer: {
         flex: 1,
@@ -875,7 +850,7 @@ const styles = StyleSheet.create({
         // minHeight: Icons.RECORDING.height,
         // maxHeight: Icons.RECORDING.height,
         alignSelf: "stretch",
-        textAlign: "center"
+        textAlign: "center",
     },
     playbackContainer: {
         //barrita de reproduccion

@@ -61,20 +61,18 @@ export const RichTextEditorToolbar: React.FunctionComponent<RichTextEditorToolba
 						<Text style={{ fontStyle: 'italic' }}>I</Text>
 					</TouchableOpacity>
 				)}
-				{props.toolbarImageButton && (
-					<TouchableOpacity
-						style={props.toolbarButtonStyle ? props.toolbarButtonStyle : Styles.button}
-						onPress={() => {
-							handlePress(
-								`(function () { let url = prompt('Enter image link here: ', ''); document.execCommand('insertHTML', false,'<br><br><img style="max-width: 100%;" src="' + url + '" alt="Image"><br><br>') })(); true;`,
-								true
-							)
-						}}>
-						<Text>Image</Text>
-					</TouchableOpacity>
-				)}
-			</View>
-			<View style={{ flexDirection: 'row', marginTop: 10 }}>
+				{/*{props.toolbarImageButton && (*/}
+				{/*	<TouchableOpacity*/}
+				{/*		style={props.toolbarButtonStyle ? props.toolbarButtonStyle : Styles.button}*/}
+				{/*		onPress={() => {*/}
+				{/*			handlePress(*/}
+				{/*				`(function () { let url = prompt('Enter image link here: ', ''); document.execCommand('insertHTML', false,'<br><br><img style="max-width: 100%;" src="' + url + '" alt="Image"><br><br>') })(); true;`,*/}
+				{/*				true*/}
+				{/*			)*/}
+				{/*		}}>*/}
+				{/*		<Text>Image</Text>*/}
+				{/*	</TouchableOpacity>*/}
+				{/*)}*/}
 				{props.toolbarListUlButton && (
 					<TouchableOpacity
 						style={props.toolbarButtonStyle ? props.toolbarButtonStyle : Styles.button}
@@ -131,12 +129,14 @@ const Styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	button: {
-		backgroundColor: '#C9E4CA',
-		padding: 10,
-		marginLeft: 5,
-		marginRight: 5,
+		backgroundColor: '#CED4DA',
+		padding: 8,
+		width: 38,
+		height: 38,
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderRadius: 8,
+		borderRadius: 3,
+		borderColor: "#ADB5BD",
+		borderWidth: 1
 	},
 })

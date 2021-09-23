@@ -1,7 +1,8 @@
-import React, { forwardRef, useImperativeHandle } from 'react'
+import React, {forwardRef, useEffect, useImperativeHandle} from 'react'
 import { View, StyleSheet, ViewStyle } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { RichEditorHtml } from './RichTextEditorHTML'
+import * as Font from "expo-font";
 
 interface RichTextEditorProps {
 	containerStyle?: ViewStyle
@@ -45,9 +46,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 		const command = customJS ? event : `document.execCommand('${event}'); true;`
 		WebViewRef.injectJavaScript(command)
 	}
-	const onLoad = (text: string) => {
-		WebViewRef.injectJavaScript(`document.body.innerText = '${text}';true;`)
-	}
+
+	useEffect(() => {
+		WebViewRef.injectJavaScript(`document.querySelector("#textEditor").innerHTML = '${props.texto}';true;`)
+	}, [props.texto]);
+
 	useImperativeHandle(ref, () => ({ passToEditor: passToEditor }))
 	return (
 		<View style={props.containerStyle ? props.containerStyle : Styles.container}>
@@ -74,10 +77,9 @@ const Styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		borderWidth: 1,
-		marginLeft: 10,
-		marginRight: 10,
 		marginBottom: 10,
-		borderRadius: 10,
 		overflow: 'hidden',
+		borderColor: "#ADB5BD",
+		borderRadius: 3
 	},
 })
