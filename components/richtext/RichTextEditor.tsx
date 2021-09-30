@@ -58,6 +58,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 				ref={(ref) => (WebViewRef = ref)}
 				style={{
 					flex: 1,
+					overflow: 'hidden',
 				}}
 				originWhitelist={['*']}
 				source={{ html: RichEditorHtml }}
@@ -77,9 +78,13 @@ const Styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		borderWidth: 1,
-		marginBottom: 10,
+		// marginBottom: 10,
 		overflow: 'hidden',
 		borderColor: "#ADB5BD",
-		borderRadius: 3
+		borderBottomWidth: 0,
+		borderTopLeftRadius: 3,
+		borderTopRightRadius: 3,
+		borderBottomLeftRadius: 0,
+		borderBottomRightRadius: 0,
 	},
 })

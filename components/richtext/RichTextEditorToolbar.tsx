@@ -124,9 +124,17 @@ RichTextEditorToolbar.defaultProps = defaultProps
 
 const Styles = StyleSheet.create({
 	container: {
-		marginTop: 10,
+		// marginTop: 10,
 		marginBottom: 10,
 		alignItems: 'center',
+		overflow: 'hidden',
+		borderTopLeftRadius: 0,
+		borderTopRightRadius: 0,
+		borderBottomLeftRadius: 3,
+		borderBottomRightRadius: 3,
+		borderWidth: 1,
+		borderTopWidth: 0,
+		borderColor: "#ADB5BD",
 	},
 	button: {
 		backgroundColor: '#CED4DA',
@@ -135,8 +143,7 @@ const Styles = StyleSheet.create({
 		height: 38,
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderRadius: 3,
-		borderColor: "#ADB5BD",
-		borderWidth: 1
+		borderRightWidth: 1,
+		borderRightColor: "#ADB5BD"
 	},
 })

@@ -21,7 +21,7 @@ import { WebView } from 'react-native-webview';
 
 import { TextInput } from 'react-native';
 import Editor from "./Editor";
-import {findCommand} from "../common/commands";
+import {findCommand, replaceComplexCommand, replaceSimpleCommand} from "../common/commands";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -150,6 +150,12 @@ export default class Grabar extends React.Component<Props, State> {
                 shouldCorrectPitch: status.shouldCorrectPitch,
                 isPlaybackAllowed: true,
             });
+            if (status.durationMillis <= status.positionMillis) {
+                this.setState({
+                    soundPosition: 0,
+                });
+                this.sound.setPositionAsync(0);
+            }
         } else {
             this.setState({
                 soundDuration: null,
@@ -250,7 +256,7 @@ export default class Grabar extends React.Component<Props, State> {
         });
         const { sound, status } = await this.recording.createNewLoadedSoundAsync(
             {
-                isLooping: true,
+                isLooping: false,
                 isMuted: this.state.muted,
                 volume: this.state.volume,
                 rate: this.state.rate,
@@ -283,47 +289,35 @@ export default class Grabar extends React.Component<Props, State> {
         }
     };
 
-    private _onStopPressed = () => {
-        if (this.sound != null) {
-            this.sound.stopAsync();
-        }
-    };
-
-    private _onMutePressed = () => {
-        if (this.sound != null) {
-            this.sound.setIsMutedAsync(!this.state.muted);
-        }
-    };
-
-    private _onVolumeSliderValueChange = (value: number) => {
-        if (this.sound != null) {
-            this.sound.setVolumeAsync(value);
-        }
-    };
-
-    private _trySetRate = async (rate: number, shouldCorrectPitch: boolean) => {
-        if (this.sound != null) {
-            try {
-                await this.sound.setRateAsync(rate, shouldCorrectPitch);
-            } catch (error) {
-                // Rate changing could not be performed, possibly because the client's Android API is too old.
-            }
-        }
-    };
-
-    private _onRateSliderSlidingComplete = async (value: number) => {
-        this._trySetRate(value * RATE_SCALE, this.state.shouldCorrectPitch);
-    };
-
-    private _onPitchCorrectionPressed = () => {
-        this._trySetRate(this.state.rate, !this.state.shouldCorrectPitch);
-    };
-
     private _onSeekSliderValueChange = (value: number) => {
         if (this.sound != null && !this.isSeeking) {
             this.isSeeking = true;
             this.shouldPlayAtEndOfSeek = this.state.shouldPlay;
             this.sound.pauseAsync();
+        }
+    };
+
+    private _onFastForward = async (value: number) => {
+        if (this.sound != null && this.state.soundPosition) {
+            this.isSeeking = false;
+            const seekPosition = this.state.soundPosition + 5000;
+            if (this.shouldPlayAtEndOfSeek) {
+                this.sound.playFromPositionAsync(seekPosition);
+            } else {
+                this.sound.setPositionAsync(seekPosition);
+            }
+        }
+    };
+
+    private _onRewind = async (value: number) => {
+        if (this.sound != null && this.state.soundPosition) {
+            this.isSeeking = false;
+            const seekPosition = this.state.soundPosition - 5000;
+            if (this.shouldPlayAtEndOfSeek) {
+                this.sound.playFromPositionAsync(seekPosition);
+            } else {
+                this.sound.setPositionAsync(seekPosition);
+            }
         }
     };
 
@@ -363,19 +357,6 @@ export default class Grabar extends React.Component<Props, State> {
             return string;
         };
         return padWithZero(minutes) + ":" + padWithZero(seconds);
-    }
-
-    private _getPlaybackTimestamp() {
-        if (
-            this.sound != null &&
-            this.state.soundPosition != null &&
-            this.state.soundDuration != null
-        ) {
-            return `${this._getMMSSFromMillis(
-                this.state.soundPosition
-            )} / ${this._getMMSSFromMillis(this.state.soundDuration)}`;
-        }
-        return "";
     }
 
     private _getRecordingTimestamp() {
@@ -469,9 +450,29 @@ export default class Grabar extends React.Component<Props, State> {
 
                 console.log(result.transcription)
 
-                const texto = findCommand(result.transcription, "negrita");
+                const comandos = [
+                    {key: "negrita", value: "b", type: "complex"},
+                    {key: "cursiva", value: "i", type: "complex"},
+                    {key: " punto", value: ". ", type: "simple"},
+                    {key: " coma", value: ", ", type: "simple"},
+                ]
+
+                var texto = result.transcription;
+
+                console.log(new Date())
+                comandos.forEach((comando) => {
+                    if (comando.type === "complex"){
+                        texto = replaceComplexCommand(texto, comando.key, comando.value)
+                    } else {
+                        texto = replaceSimpleCommand(texto, comando.key, comando.value)
+                    }
+                })
+                console.log(new Date())
+
+                // const texto = replaceComplexCommand(replaceComplexCommand(result.transcription, "cursiva", "i"), "negrita", "b");
 
                 here.setState({texto: texto, isConverting: false});
+                console.log(new Date())
 
             } catch(e) {
                 console.log("Press F")
@@ -541,10 +542,10 @@ export default class Grabar extends React.Component<Props, State> {
                         style={[
                             styles.recordingTimestamp,
                             { fontFamily: "inter",
-                                fontSize: 20, textAlign: "center"},
+                                fontSize: 20, textAlign: "center", marginTop: 20},
                         ]}
                     >
-                        {this.state.sincro ? this.state.filename : "ALGO"}
+                        {this.state.sincro ? this.state.filename : "Grabación"}
                     </Text>
                     <View style={styles.recordingContainer}>
                         <TouchableHighlight
@@ -584,164 +585,132 @@ export default class Grabar extends React.Component<Props, State> {
                         </TouchableHighlight>
                     </View>
                 </View>
-                    <Editor texto={this.state.texto}/>
-                    <View style={{ display:
-                            true
-                                // (!this.state.isRecording && this.state.recordingDuration)
-                                ? 'flex' : "none", flexDirection: 'row', paddingLeft: 15, paddingRight: 15 }}>
-                        <TextInput
-                            style={{ height: 40, borderColor: '#CED4DA', borderWidth: 1, width: "75%", padding: 6, borderRadius: 3  }}
-                            onChangeText={text => {
-                                this.setState({filename: text})
-                            }}
-                            value={this.state.filename}
-                        />
-                        <View
-                            style={{ width: "25%", flex: 1, justifyContent: "space-between", alignItems: "center", flexDirection: "row",
-                                marginLeft: 15, marginRight: 15}}
-                        >
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                // onPress={this._onRecordPressed}
-                                disabled={this.state.isConverting}
-                            >
-                                <Image style={{ width: 25, height: 25, display: !this.state.isConverting ? "flex" : "none" }}
-                                       source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACvSURBVHgBrZXRDYAgDEQrEziiG8gGdkNHQhE0BgVKe5fwA+S9hLSUKGUmcivhsiTmA5/2c4VTspE5kRFZkZkkS94IdskDz4v8fcJ2yQfO5Q2DpA83SORwhWQcPiDRwwUSO7whwcErEiy8IZHBHYnigmxPlfLNUd/KL/x6FgZJmtVilYhKUSsZqvNRiaqJWCgxdSh3JJD255rEA+AVyTX830Mf8rdwOfSzJNlA8Tf8ABlEoChg1GBoAAAAAElFTkSuQmCC"}}
-                                />
-                            </TouchableHighlight>
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                onPress={this._sendRecording}
-                                disabled={this.state.isConverting}
-                            >
-                                <Image style={{ width: 25, height: 25, display: !this.state.isConverting ? "flex" : "none" }}
-                                       source={{uri: "data:image/svg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEISURBVHgBtZbhDYIwEIVfCf91BEbQCdQNHAEnUCfATWQDRqBOoE4gG6gLWFsoGJDTU9ovaWhK8x69Xq8AQASIXDc1sF211gTviMyBOGkiqhclBaAk/mOsdZa2f9M6C/081R7WHXsMY0esxJlBr0lITIyBYAYWj1XbwHyrSFCFLQexgpS/sb00iRPAD/e648uggdqDdEDKsgwkHOE9REyDYK0z4mIz44iyfrH5dtCChKg50QfR9Ic0VXHPoD5E2IABJ0QRMT6CIwNJjB/gxkBtUZbgFqYUp2AQMuZoMTVFFXMTljNXnGtgKMDc1C7eD1rnyhQSTlBzvLLPyR8FdVdksE6ZB/HcaD8BTO2eEWgu1rgAAAAASUVORK5CYII="}}
-                                />
-                            </TouchableHighlight>
-                            <Image style={{ width: 25, height: 25, display: this.state.isConverting ? "flex" : "none" }}
-                                source={{uri:
-                                        'https://img.icons8.com/fluency-systems-filled/48/000000/dots-loading.png'}}
-                            />
-                        </View>
-
-                    </View>
 
                 <View
-                    style={[
-                        styles.quarterScreenContainer,
-                        {
-                            opacity:
-                                !this.state.isPlaybackAllowed || this.state.isLoading
-                                    ? DISABLED_OPACITY
-                                    : 1.0,
-                        },
-                    ]}
-                >
-                    <View />
+                    style={{ flexDirection: 'row', alignItems: "center", marginTop: 16 }}>
+                    <TouchableHighlight
+                        underlayColor={BACKGROUND_COLOR}
+                        style={styles.pause}
+                        onPress={this._onPlayPausePressed}
+                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                    >
+                        <Image
+                            style={styles.image}
+                            source={{
+                                uri: this.state.isPlaying
+                                    ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAMElEQVRIiWNgGAXDHjDikftPQC0heQYGBgYGJlJdRCoYtWDUglELRi0YDBaMghEAAJU1AhyTToiMAAAAAElFTkSuQmCC"
+                                    : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAjklEQVRIie3UsQkCQRBA0YcgFwqGgg1cC0ZXhHUYmtrCtWABl1wNlmBkfqaGJnoG7mUmwo6B7IdhmYXdD7MzS6GAHutIwYgbdphFCaY4oY4SDGm944Aqt2CBFo+UX9DkFExscE57TxyxzCmAOfbe5RpxxfbT4ZCu+JaflSj8kcPbNHTQQr+KDquIiwt/wgvj/DWO5BQvhAAAAABJRU5ErkJggg=="
+                            }}
+                        />
+                    </TouchableHighlight>
+                    <TouchableHighlight
+                        underlayColor={BACKGROUND_COLOR}
+                        style={styles.play}
+                        onPress={this._onRewind}
+                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                    >
+                        <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABDUlEQVRoge3XMU4CURSF4V+0MkQrWysKGhdA7N2BLVtgC67CBZC4AFZASWNlTSjpLExsjIahEJIb80beJbeYS85XD+cPCTO8ARERERGJdAVMO7TjMgKWQNORnWoXwBPws4seG47acRkCryZ4bDhqx2UMfBai3nDUTrUbYNYS9ISjdlwegPWBaE04aqfaJfAMbAqRD0c4asflDngrjDfAAhhUhqN2qp0BE+CrMPzN7yPvfHftf+GoHZdbYF4YbIAVcP/n+rZw1I7LI/DeEp0C/cJnSuGonVa9yi+UUuqf0F7qm9hK+xi1Uv+RWWmPElbqw5yV9jhtpX6h2Uv9Smmlfam3roGXDu2IiIiInKwtvnFMQESdO+IAAAAASUVORK5CYII="}} />
+                    </TouchableHighlight>
+                    <TouchableHighlight
+                        underlayColor={BACKGROUND_COLOR}
+                        style={styles.play}
+                        onPress={this._onFastForward}
+                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                    >
+                        <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAA/0lEQVRoge3XP0oEMRQH4M8VBG0ESxsLayux9wQewSt4Ba9g4w1svIGljQewEUtbu20EESYW64AuYWH+T+R9kGYm/B4PJpOEEEIIIYSwyT0OZpTTWMIbzmeS06pwQoUb7Eyc07pwPZ5xMmFO58IJH7jC1gQ5jeUK1+MBhyPnNLapcMI7LkbMaWy90DLzrMIt9kbI6dzAER4zzxNecDpwTucGYGG1+D4z779wje2BcnppoHaG18ychCccD5DTawOwa7UxVZm5S1z2nPPHokVDxfmXn1DRi7j432jxG9n6KO4o8XsUe5gr+jhd7IWm6Ctl0Zf6O+zPKCeEEEIIIfz4Bl57TbTeo5DJAAAAAElFTkSuQmCC"}} />
+                    </TouchableHighlight>
                     <View style={styles.playbackContainer}>
                         <Slider
                             style={styles.playbackSlider}
-                            trackImage={Icons.TRACK_1.module}
-                            thumbImage={Icons.THUMB_1.module}
+                            // trackImage={Icons.TRACK_1.module}
                             value={this._getSeekSliderPosition()}
                             onValueChange={this._onSeekSliderValueChange}
                             onSlidingComplete={this._onSeekSliderSlidingComplete}
-                            disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+                            thumbTintColor={"#A10060"}
+                            minimumTrackTintColor={"#A10060"}
                         />
-                        {/*<Text*/}
-                        {/*    style={[*/}
-                        {/*        styles.playbackTimestamp,*/}
-                        {/*        { fontFamily: "cutive-mono-regular" },*/}
-                        {/*    ]}*/}
-                        {/*>*/}
-                        {/*    {this._getPlaybackTimestamp()}*/}
-                        {/*</Text>*/}
                     </View>
-                    <View
-                        style={[styles.buttonsContainerBase, styles.buttonsContainerTopRow]}
-                    >
-                        <View style={styles.volumeContainer}>
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                style={styles.wrapper}
-                                onPress={this._onMutePressed}
-                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                            >
-                                <Image
-                                    style={styles.image}
-                                    source={{
-                                        uri: this.state.muted
-                                            ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABSklEQVRIid2VsS4FQRSGv05DJUZEVIJGKUo9olYo1K6O5GpE7jNIFDyBRJS03kBBIVokopEQCXFzQ7H/xGQyc2ZtaO6fbHbOnJn/2z0zOwv9pg3A/Zd5C/gCrjOQTg2PeSvpZJ6C7Krf0h7QA1aaQJaAjwKgrXkvwHhTSErrwIDap5p3VHgYHPCUgMTa0pgDxZPAJ9AFJixARxP9lYPMUZWuB8yq71hzNsOBy8BDZNql2ra5hfc6VH5f8Zris3DQfcJ8VTlXeJMF5S4VTyu+DQd5g5yscg2r/1HxkOLXJoBUuQap1uE5AryHBlaJQoC1hS/UnlH+LgQsFiDhG+Ygo7r7RT7P1oOfbeohcQmtY+VE/dsWIIak1sgq1xuFDy2G5DZBDjJVx9xrxwAAjABXyt8AY78xjyE5/Qmk9MMJy9VqAqgjR3V+9ZG+AZnfkmjlyxv5AAAAAElFTkSuQmCC"
-                                            : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA5klEQVRIie2UPw4BQRSHP4TKEbQkREOjVIsDKCQOodE6gYQ9hVsoOIEbsBfQERKKfZuMyXj7z3T7a957O7O/bzPv7UCpP2rt2/zt29wLwDT/BVgAjSLmTwWwlOdBEfOZAhgAd+AF9DTDKRDyfRyxOQ7ACuhIvpO1jQa4KuY2YC75XuqR1GcNkDQl5npL8lDqptQ314tVjZpRzg+MAaGxyXVEpsYSjxL7Ei8afYLeB1eT25IHpGiyrbRjOgQeRGPazQKwIUk/2jaruQ1JuirqeQEQnbe3y86GZFYt5b4TUAEOeSClVH0A4b1bznHC0d4AAAAASUVORK5CYII="
-                                    }}
-                                />
-                            </TouchableHighlight>
-                            <Slider
-                                style={styles.volumeSlider}
-                                trackImage={Icons.TRACK_1.module}
-                                thumbImage={Icons.THUMB_2.module}
-                                value={1}
-                                onValueChange={this._onVolumeSliderValueChange}
-                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                            />
-                        </View>
-                        <View style={styles.playStopContainer}>
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                style={styles.wrapper}
-                                onPress={this._onPlayPausePressed}
-                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                            >
-                                <Image
-                                    style={styles.image}
-                                    source={{
-                                        uri: this.state.isPlaying
-                                            ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAjklEQVRIie3UsQkCQRBA0YcgFwqGgg1cC0ZXhHUYmtrCtWABl1wNlmBkfqaGJnoG7mUmwo6B7IdhmYXdD7MzS6GAHutIwYgbdphFCaY4oY4SDGm944Aqt2CBFo+UX9DkFExscE57TxyxzCmAOfbe5RpxxfbT4ZCu+JaflSj8kcPbNHTQQr+KDquIiwt/wgvj/DWO5BQvhAAAAABJRU5ErkJggg=="
-                                            : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAMElEQVRIiWNgGAXDHjDikftPQC0heQYGBgYGJlJdRCoYtWDUglELRi0YDBaMghEAAJU1AhyTToiMAAAAAElFTkSuQmCC"
-                                    }}
-                                />
-                            </TouchableHighlight>
-                            <TouchableHighlight
-                                underlayColor={BACKGROUND_COLOR}
-                                style={styles.wrapper}
-                                onPress={this._onStopPressed}
-                                disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
-                            >
-                                <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAO0lEQVRIiWNgGAXDHjDiEP9PLfOYyDSIaMBCQB6XD9EBTh/T3AejFoxaMGoB4ZxMbpkEBzT3wSgYAQAAYgwDHy/kfC8AAAAASUVORK5CYII="}} />
-                            </TouchableHighlight>
-                        </View>
-                        <View>
-                        </View>
-                        <View />
-                    </View>
+                </View>
+
+                <View style={{ display: 'flex', flexDirection: 'row', paddingLeft: 15, paddingRight: 15, marginTop: 16 }}>
+                    <TextInput
+                        style={{ height: 40, borderColor: '#ADB5BD', borderWidth: 1, width: "100%", padding: 6, borderRadius: 3  }}
+                        onChangeText={text => {
+                            this.setState({filename: text})
+                        }}
+                        value={this.state.filename}
+                    />
+                </View>
+
+                <View
+                    style={{ maxHeight: "30%", marginTop: 16 }}
+                >
+                    <Editor texto={this.state.texto}/>
                     <View />
                 </View>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => this.props.navigation.navigate('Lista grabaciones')}
-                    style={styles.touchableOpacityStyle}>
-                    <Image
-                        source={{
-                            uri:
-                                'https://img.icons8.com/material-outlined/24/000000/edit-folder.png',
-                        }}
-                        //source={require('./images/float-add-icon.png')}
-                        style={styles.floatingButtonStyle}
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={this._loadFile}
-                    style={styles.touchableOpacityStyle2}>
-                    <Image
-                        source={{
-                            uri:
-                                'https://img.icons8.com/material-outlined/24/000000/add-file.png',
-                        }}
-                        //source={require('./images/float-add-icon.png')}
-                        style={styles.floatingButtonStyle}
-                    />
-                </TouchableOpacity>
+
+                <View
+                    style={[
+                        styles.bottomContainer,
+
+                    ]}
+                >
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => this.props.navigation.navigate('Lista grabaciones')}
+                        style={styles.bottomButton}>
+                        <Image
+                            source={{
+                                uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACnUlEQVR4nO3cPW4TQRyG8QeIU3KQRKJCgoKCBhpE5yNwgZyAlEiIjygtHU0kbkCOkQAtFwAh7FSJFArHJFl/7Myux/+1/fyk6SY7u+/r3bUda0GSJEmSJEmSJGnSLvABOAWGwGXhsb+cw+q+beAQuKB86JZQsQ0cs/zgLeHKIbHhb3QJu8RcdizhykfiQ6+ON0WPuGO+ER/4Rp8JA+LDXtsz4U7CnMvie7HazoCfwFfgE/B90QtEv8pXaVwAB0AvNVzPgDKOgRfAed3Eu+X3ZSM9A96mTPQMKOcCeAD8mDfJM6CcLeBV3SQLKOt53QQvQWUNgPvzJiyigJRtrLNW+XgJCmYBwSwgmAUEs4BgFhDMAoJZQDALCGYBwSwgmAUEs4BgFhDMAoJZQFnDugkWUM4Z8HIRG6r7MdKmm5bJEHhacgELuFY0/GkLWMBtRcOvLmABk4qGf3MBC5iuaPjjBSxgtqLhgwXUedLmj/1hVjA/iAWzgGAWUNYe8Bs4AR423Yg34Wb2uZ3TH+Bxkw1ZQL5q+K1KsIA8s8JvXIIFpOtTn9e4hEepG7WAdFvAEeklJN2YLSBPTgknKRu0gPn6jEK/KbWEXykLWMBs4xvuEc1K2EtZxAKmq77b+cJkCfeAz0zP7XXqQhYwadZbzdQSksNnxkKbXEDd+/y6ErLCB/hbs+AqjwF53+fXhT8es+4J/Yy1/jvNOKBVGqXCn1dCI+8zF16FkftvxNzwx2Pa5SjbDt16bGXXX/nV0eiyU3XQcie6MpYd/sKe7Nhj9FC66AA3MvyxHqOHuJ633DHDb2kHeMfoi6QuP1N0LcNfd23Dz/6QpWuGH8jwAxl+IMMPZPiBDD+Q4Qcz/GCGH8zwgxl+MMMPZvjBDD9Yp8L/B5CcaYMydu31AAAAAElFTkSuQmCC",
+                            }}
+                            //source={require('./images/float-add-icon.png')}
+                            style={styles.floatingButtonStyle}
+                        />
+                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Archivos </Text>
+                    </TouchableOpacity>
+                    {/*<TouchableOpacity*/}
+                    {/*    activeOpacity={0.7}*/}
+                    {/*    onPress={this._loadFile}*/}
+                    {/*    disabled={this.state.isConverting}*/}
+                    {/*    style={styles.bottomButton}>*/}
+                    {/*    <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}*/}
+                    {/*        style={styles.floatingButtonStyle}*/}
+                    {/*    />*/}
+                    {/*    <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>*/}
+                    {/*</TouchableOpacity>*/}
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={this._loadFile}
+                        disabled={this.state.isConverting}
+                        style={styles.bottomButton}>
+                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAA70lEQVR4nO3dQQ6CQBAAQST+/8t65WYiwzbGqgfsAp1J2AtsGwAAAAD/4jGwxmtgjV926hnuU1fBdwSICRATICZATICYALHngj0mzhpHn84dq/c7xQTEBIgJEBMgJkBMgJgAsel35hVWnwMuZQJiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgJgAMQFiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgNgdv61z9f8IbnXPJiAmQEyAmAAxAWICxAQAAAAAgEXed3cFkD3sMwAAAAAASUVORK5CYII="}}
+                            style={styles.floatingButtonStyle}
+                        />
+                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Comandos </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={this._manageVoices}
+                        disabled={this.state.isConverting}
+                        style={styles.bottomButton}>
+                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACoUlEQVR4nO3dTWoUQQDF8b+iK+2sxCQEF3oSXeigxuQSEsWTuBdFj6HBixhF3OhC1J1KNKCJ0C5qGhkMXXRNTb3pyvtBrzp0Xs2b/phmphrMzMzMzMzMzOykOJV5exvANrAJXAYuAecKZxiqjaw/AD4CH4Bd4DnwedGhhroAPAR+EwY0ZFEbmvcIeAasKcIe5ybwneEDGWsB3fINmAjyzrgH/CF9EGMuoCWMfad85GBC2B3nGcDYC+hKuF069BrzHXZqKqA7HK2WDP00U/BaCmiBx6UCb5Dn0FNbAYfA+tB/fjoh8DZwJvI3e4TPAg3hOr9vUYvla4A7wOvIds4SXpuFe0n/O+EVcL5EkMIaQgl9Y98tEeRdJMRmiRAiW/SP/W2JEPuREDW++zsN/WPfH7rBlGNw7MS5DMf1Rco6/pSTsGXkAsRcgFjsen4ZVXUO8h4g5gLEXIDYqI6XUz4HWD4uQMwFiLkAMRcg5gLEXICY4l6Q+jpe/f9neA8QcwFiLkDMBYi5ADEXIOYCxFyAmAsQcwFiLkDMBYi5ADEXIOYCxEb1HZqppbqfPy/vAWIuQMwFiLkAMRcg5gLEXIBYyveCqroOT+DfCdfEBYi5ALEx/k64qnOM9wAxFyDmAsRSCvgRWV/zhE0rkfWx1+Y/KQXEJq6+mrDNsbgWWf+pRIjYpH17hKm9arMCvGEJJu17EAnREmYX3KKOIhrCdJSxF78F7pcI5IlbM07cmupJxuBqucbxqGToVcKE1S4gLF+Bi6WDX8fT17eE6etvFU89tcPJfoDDEXC3fORZE+Y7HKnNc9i5Ich7rO4hPr+ov4BDMj7EJ/et3XX+PcbqCuExVrFbE+rby7E3wU/CY6zeEz5ovQC+LDqUmZmZmZmZmZnV5y+7p0tjVA3rhwAAAABJRU5ErkJggg=="}}
+                               style={styles.floatingButtonStyle}
+                        />
+                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Voces </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={this._sendRecording}
+                        style={styles.bottomButton}>
+                        <Image
+                            source={{
+                                uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABSElEQVRoge2ZvW7CMBRGD1UHGFp1hr2v2G6lW/smsDDzTkhIyQvAkKJWln1zY8c/qPdIlkA20Xdk59ohYBiG0TKvwAHogUvh1gN7YJMS/lwhuNtOsRKHBsLf2i4UciEI9MDTROlcdMCLr0MSqM3F+e7N+lAgSFZMoDaPI/1bYAm8C2PctTqVbPfhlt8y9iWMSy2R2utGhx+TaE7AF16SaEpACq9ZTnMyWUATvqSESkCqAKqdMCP/Yyce2wc0aG+wLDN49zNgArWZ4x6o+kxx9zPQksAb8sb1t+9Dc8Gk02AkroSvqcLj+aF2XOphTpJQh68pEJKYFL62gCsRDD9HGc3FN7D6+fwZGtTyaVRFS2U0ChOojbSuO+C5VJARgn/uSjNwzJMliqgsG4aXC6l1PrWdgHWMwE1izzCFpYN3DC82osMbhmHk5wojHnjCVnpIzAAAAABJRU5ErkJggg==",
+                            }} style={styles.floatingButtonStyle}
+                        />
+                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Transcribir </Text>
+                    </TouchableOpacity>
+                </View>
+
             </View>
         );
     }
@@ -751,7 +720,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: "column",
-        justifyContent: "space-between",
         alignItems: "center",
         alignSelf: "stretch",
         backgroundColor: BACKGROUND_COLOR,
@@ -770,38 +738,33 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
 
     },
-    touchableOpacityStyle: {
-        position: 'absolute',
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        right: 30,
-        bottom: 30,
-        borderRadius: 100,
-        borderWidth: 2,
-        borderColor: "black",
-        backgroundColor:'white',
-        padding: 24
+    play: {
+        marginTop: 5,
+        paddingRight: 10,
+        display: "flex",
+        alignSelf: "stretch",
+
     },
-    touchableOpacityStyle2: {
-        position: 'absolute',
-        width: 40,
-        height: 40,
+    pause: {
+        marginTop: 5,
+        paddingRight: 10,
+        paddingLeft: 10,
+        display: "flex",
+        alignSelf: "stretch",
+
+    },
+    bottomButton: {
+        width: 72,
+        height: 72,
         alignItems: 'center',
         justifyContent: 'center',
-        right: 90,
-        bottom: 30,
-        borderRadius: 100,
-        borderWidth: 2,
-        borderColor: "black",
-        backgroundColor:'white',
-        padding: 24
+        flexDirection: "column",
+        alignSelf: "flex-end",
     },
     floatingButtonStyle: {
         resizeMode: 'contain',
-        width: 30,
-        height: 30,
+        width: 50,
+        height: 50,
     },
     halfScreenContainer: {
         flex: 1,
@@ -817,10 +780,19 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: "column",
         justifyContent: "space-between",
-        // alignItems: "center",
         alignSelf: "stretch",
         maxHeight: (DEVICE_HEIGHT - 64) / 6,
         marginTop: 0,
+    },
+    bottomContainer:{
+        flexDirection: "row",
+        alignSelf: "flex-end",
+        justifyContent: "space-evenly",
+        height: (DEVICE_HEIGHT - 64) / 4,
+        maxHeight: (DEVICE_HEIGHT - 64) / 4,
+        width: "100%",
+        maxWidth: "100%",
+
     },
     recordingContainer: {
         flex: 1,
@@ -859,11 +831,13 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         alignSelf: "stretch",
+        paddingRight: 16,
         minHeight: Icons.THUMB_1.height * 2.0,
         maxHeight: Icons.THUMB_1.height * 2.0,
     },
     playbackSlider: {
         //barrita de reproduccion
+        // maxWidth: "50%",
         alignSelf: "stretch",
     },
     recordingTimestamp: {
@@ -902,27 +876,10 @@ const styles = StyleSheet.create({
         minWidth: ((Icons.PLAY_BUTTON.width + Icons.STOP_BUTTON.width) * 3.0) / 2.0,
         maxWidth: ((Icons.PLAY_BUTTON.width + Icons.STOP_BUTTON.width) * 3.0) / 2.0,
     },
-    volumeContainer: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        minWidth: DEVICE_WIDTH / 2.0,
-        maxWidth: DEVICE_WIDTH / 2.0,
-    },
-    volumeSlider: {
-        width: DEVICE_WIDTH / 2.0 - Icons.MUTED_BUTTON.width,
-    },
     buttonsContainerBottomRow: {
         maxHeight: Icons.THUMB_1.height,
         alignSelf: "stretch",
         paddingRight: 20,
         paddingLeft: 20,
-    },
-    timestamp: {
-        fontFamily: "cutive-mono-regular",
-    },
-    rateSlider: {
-        width: DEVICE_WIDTH / 2.0,
     },
 });

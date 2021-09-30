@@ -6,21 +6,22 @@ export const RichEditorHtml = `<!DOCTYPE html>
     <style>
         * {
             outline: 0px;
+            overflow-x: hidden;
         }
 
         ::-webkit-scrollbar {
             display: none;
+            overflow-x: hidden;
         }
 
         body {
+            overflow-x: hidden;
             outline: 0;
             padding: 1em;
-            padding-left: 1.5em;
-            padding-right: 1.5em;
-            margin: 0;
-            height: 100%;
+            padding-left: 1em;
+            padding-right: 1em;
             min-height: 100%;
-            width: 100%;
+            width: 90%;
             border-color: #ADB5BD;
         }
     </style>
