@@ -1,13 +1,12 @@
 {
   "expo": {
-    "name": "Record",
+    "name": "WriteMe",
     "description": "Hear me now.",
     "slug": "record",
     "privacy": "public",
     "version": "1.0.0",
     "orientation": "portrait",
     "primaryColor": "#cccccc",
-    "icon": "./assets/icons/icon.png",
     "ios": {
       "supportsTablet": true
     },

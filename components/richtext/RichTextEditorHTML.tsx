@@ -28,11 +28,10 @@ export const RichEditorHtml = `<!DOCTYPE html>
 </head>
 
 <body>
-    <div id="textEditor" contenteditable="true" spellcheck="false"></div>
+    <div id="textEditor" contenteditable="true" spellcheck="true"></div>
 </body>
 
 <script>
-    
     const observer = new MutationObserver(mutations => {
         window.ReactNativeWebView.postMessage(textEditor.innerHTML)
     })

@@ -8,6 +8,8 @@ import {useEffect, useState} from "react";
 import {Image, View} from "react-native";
 
 import logo from "./assets/images/logo-minimalista.png";
+import LogIn from "./components/LogIn";
+import {LogInProvider} from "./components/LogInContext/LogInProvider";
 
 const Stack = createStackNavigator();
 
@@ -38,12 +40,15 @@ function App() {
     }, []);
 
   return (
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
-          <Stack.Screen name="WriteMe" component={fonts ? Grabar : Loading} />
-          <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <LogInProvider>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="LogIn">
+              <Stack.Screen name="LogIn" component={LogIn} />
+              <Stack.Screen name="WriteMe" component={fonts ? Grabar : Loading} />
+              <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
+            </Stack.Navigator>
+          </NavigationContainer>
+      </LogInProvider>
   );
 }
 
