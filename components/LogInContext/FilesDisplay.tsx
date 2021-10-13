@@ -6,7 +6,6 @@ export class FilesDisplay extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        console.log(props)
         this.state = {
             files: []
         }
@@ -27,8 +26,6 @@ export class FilesDisplay extends React.Component<Props, State> {
             if (result.length > 0) {
                 this.setState({files: result})
             }
-
-            console.log(result)
         } catch(e) {
             console.log("Press F")
             console.log(e);
@@ -39,14 +36,15 @@ export class FilesDisplay extends React.Component<Props, State> {
     render() {
 
         return <View style={{width: "100%"}}>
-            {this.state.files.map((file) => <TouchableHighlight
+            {this.state.files.map((file, index) => <TouchableHighlight
+                key={"file_" + index}
                     style={{
                         width: "100%",
                         borderBottomColor: "#ADB5BD",
                         borderBottomWidth: 1,
                         paddingBottom: 10
                     }}
-                    onPress={this.props.action}
+                    onPress={() => this.props.action(file)}
                 >
                     <Text
                         style={{

@@ -21,7 +21,6 @@ export default class LogIn extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        console.log(props)
         this.state = {
             username: "enzo",
             password: "enzo",
@@ -30,8 +29,6 @@ export default class LogIn extends React.Component<Props, State> {
 
 
     render() {
-        console.log(this.props)
-
         const login = () => {
             const credenciales = {
                 "agus": "agus",
@@ -106,8 +103,8 @@ export default class LogIn extends React.Component<Props, State> {
                                 autoCapitalize="none"
                                 autoCompleteType="password"
                                 autoCorrect={false}
+                                secureTextEntry={true}
                                 onChangeText={text => {
-                                    console.log(text)
                                     this.setState({password: text})
                                 }}
                                 value={this.state.password}

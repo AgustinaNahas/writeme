@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Grabar from "./components/Grabar";
+import Grabar, {GrabarWrapper} from "./components/Grabar";
 import ListaGrabaciones from "./components/ListaGrabaciones";
 import * as Font from "expo-font";
 import {useEffect, useState} from "react";
@@ -10,6 +10,7 @@ import {Image, View} from "react-native";
 import logo from "./assets/images/logo-minimalista.png";
 import LogIn from "./components/LogIn";
 import {LogInProvider} from "./components/LogInContext/LogInProvider";
+import Comandos from "./components/Comandos";
 
 const Stack = createStackNavigator();
 
@@ -44,8 +45,9 @@ function App() {
           <NavigationContainer>
             <Stack.Navigator initialRouteName="LogIn">
               <Stack.Screen name="LogIn" component={LogIn} />
-              <Stack.Screen name="WriteMe" component={fonts ? Grabar : Loading} />
+              <Stack.Screen name="WriteMe" component={fonts ? GrabarWrapper : Loading} />
               <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
+              <Stack.Screen name="Comandos" component={Comandos} />
             </Stack.Navigator>
           </NavigationContainer>
       </LogInProvider>

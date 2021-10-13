@@ -31,7 +31,10 @@ export default class ListaGrabaciones extends React.Component<Props, State> {
                         >
                             {context.user.username}
                         </Text>
-                        <FilesDisplay username={context.user.username} action={() => this.props.navigation.navigate('WriteMe')}/>
+                        <FilesDisplay username={context.user.username} action={(filename) => {
+                            context.setFilename(filename)
+                            this.props.navigation.navigate('WriteMe')
+                        }}/>
                     </View>
                 )}
             </MyContext.Consumer>

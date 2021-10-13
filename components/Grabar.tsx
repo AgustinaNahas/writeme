@@ -12,6 +12,9 @@ import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Icons from "./Icons";
 
+
+import logo from "./../assets/images/logo-minimalista.png";
+
 import { RichTextEditor, RichTextEditorRef } from './richtext/RichTextEditor'
 import { RichTextEditorToolbar } from './richtext/RichTextEditorToolbar'
 
@@ -22,6 +25,7 @@ import { WebView } from 'react-native-webview';
 import { TextInput } from 'react-native';
 import Editor from "./Editor";
 import {findCommand, replaceComplexCommand, replaceSimpleCommand} from "../common/commands";
+import MyContext from "./LogInContext/Context";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -52,6 +56,7 @@ type State = {
     texto: string;
     isConverting: boolean;
     textRef: any;
+    prevFileLoaded: string;
 };
 
 export default class Grabar extends React.Component<Props, State> {
@@ -88,7 +93,8 @@ export default class Grabar extends React.Component<Props, State> {
             texto: "",
             sincro: false,
             isConverting: false,
-            textRef: undefined
+            textRef: undefined,
+            prevFileLoaded: "none"
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -120,7 +126,18 @@ export default class Grabar extends React.Component<Props, State> {
 
         var richTextEditorRef = React.createRef<RichTextEditorRef>()
 
+        // console.log(this.props.newFile)
+        // console.log(this.state.prevFileLoaded)
+        // if (this.props.newFile && this.props.newFile.length > 0 && this.state.prevFileLoaded !== "done"){
+        //     this._loadFileServer(this.props.newFile)
+        // }
+
         this.setState({textRef: richTextEditorRef})
+    }
+    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
+        if (this.props.newFile && this.props.newFile.length > 0 && this.state.prevFileLoaded === "none"){
+            this._loadFileServer(this.props.newFile)
+        }
     }
 
     private _askForPermissions = async () => {
@@ -148,7 +165,7 @@ export default class Grabar extends React.Component<Props, State> {
                 muted: status.isMuted,
                 volume: status.volume,
                 shouldCorrectPitch: status.shouldCorrectPitch,
-                isPlaybackAllowed: true,
+                isPlaybackAllowed: false,
             });
             if (status.durationMillis <= status.positionMillis) {
                 this.setState({
@@ -424,6 +441,8 @@ export default class Grabar extends React.Component<Props, State> {
                 "filename": filename
             }
 
+            console.log(fileBase64)
+
             let options = {
                 method: 'POST',
                 body: JSON.stringify(data),
@@ -448,14 +467,7 @@ export default class Grabar extends React.Component<Props, State> {
                     console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
                 }
 
-                console.log(result.transcription)
-
-                const comandos = [
-                    {key: "negrita", value: "b", type: "complex"},
-                    {key: "cursiva", value: "i", type: "complex"},
-                    {key: " punto", value: ". ", type: "simple"},
-                    {key: " coma", value: ", ", type: "simple"},
-                ]
+                const comandos = this.props.commands;
 
                 var texto = result.transcription;
 
@@ -468,8 +480,6 @@ export default class Grabar extends React.Component<Props, State> {
                     }
                 })
                 console.log(new Date())
-
-                // const texto = replaceComplexCommand(replaceComplexCommand(result.transcription, "cursiva", "i"), "negrita", "b");
 
                 here.setState({texto: texto, isConverting: false});
                 console.log(new Date())
@@ -484,9 +494,146 @@ export default class Grabar extends React.Component<Props, State> {
 
     }
 
+    private _loadFileServer = async (path) => {
+
+        console.log("prevFileLoaded loadFileServer", this.state.prevFileLoaded)
+
+        // try {
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            this.setState({ prevFileLoaded: "loading" })
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+                playsInSilentModeIOS: true,
+                interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+                playThroughEarpieceAndroid: true,
+            });
+            if (this.recording !== null) {
+                this.recording.setOnRecordingStatusUpdate(null);
+                this.recording = null;
+            }
+
+            const recording = new Audio.Recording();
+            await recording.prepareToRecordAsync(this.recordingSettings);
+            recording.setOnRecordingStatusUpdate(this._updateScreenForRecordingStatus);
+
+            this.recording = recording;
+            await recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
+
+            console.log("prevFileLoaded loadFileServer", this.state.prevFileLoaded)
+
+            await sleep(1000)
+
+
+            await recording.stopAndUnloadAsync();
+
+            const { sound, status } = await recording.createNewLoadedSoundAsync(
+                {
+                    isLooping: false,
+                    isMuted: this.state.muted,
+                    volume: this.state.volume,
+                    rate: this.state.rate,
+                    shouldCorrectPitch: this.state.shouldCorrectPitch,
+                },
+                this._updateScreenForSoundStatus
+            );
+
+            this.sound = sound;
+
+            const results = await sound.getStatusAsync();
+
+            const uri = results.uri;
+
+            try {
+                const apiUrl = "https://writeme-api.herokuapp.com/audio"
+                const options = {
+                    method: 'POST',
+                    body: JSON.stringify({ path: path }),
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                };
+
+                let response = await fetch(apiUrl, options);
+                let result = await response.json();
+
+                await FileSystem.writeAsStringAsync(uri, result.blob, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+
+                const audioClip = await Audio.Sound.createAsync(
+                    { uri: uri }, {}, this._updateScreenForSoundStatus);
+
+                console.log("prevFileLoaded createAsync", this.state.prevFileLoaded)
+
+                this.setState({ prevFileLoaded: "done" })
+
+                this.sound = audioClip.sound;
+                const here = this;
+
+                await this.sound.getStatusAsync().then(function(results) {
+                    here.setState({
+                        isLoading: false,
+                        recordingDuration: results.durationMillis,
+                        soundDuration: results.durationMillis,
+                        uri: result.uri,
+                        prevFileLoaded: "done"})
+                });
+
+            } catch(e) {
+                console.log("Press F")
+                console.log(e);
+                this.setState({ prevFileLoaded: "done" })
+
+            }
+    }
+
     private _loadFile = async () => {
 
         try {
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+                playsInSilentModeIOS: true,
+                shouldDuckAndroid: true,
+                interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+                playThroughEarpieceAndroid: false,
+                staysActiveInBackground: true,
+            });
+            if (this.recording !== null) {
+                this.recording.setOnRecordingStatusUpdate(null);
+                this.recording = null;
+            }
+
+            const recording = new Audio.Recording();
+            await recording.prepareToRecordAsync(this.recordingSettings);
+            recording.setOnRecordingStatusUpdate(this._updateScreenForRecordingStatus);
+
+            this.recording = recording;
+            await this.recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
+            await this.recording.stopAndUnloadAsync();
+
+            const { sound, status } = await this.recording.createNewLoadedSoundAsync(
+                {
+                    isLooping: false,
+                    isMuted: this.state.muted,
+                    volume: this.state.volume,
+                    rate: this.state.rate,
+                    shouldCorrectPitch: this.state.shouldCorrectPitch,
+                },
+                this._updateScreenForSoundStatus
+            );
+            this.sound = sound;
+
             const result = await DocumentPicker.getDocumentAsync({});
 
             // console.log(result.uri)
@@ -538,16 +685,22 @@ export default class Grabar extends React.Component<Props, State> {
         return (
             <View style={styles.container}>
                 <View style={[ styles.quarterScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
+                    <View style={{ width: "100%", position: "absolute", opacity: 0.2, height: 120 }}>
+                        <Image source={logo} style={{ marginTop: "auto", marginLeft: "auto", marginRight: "auto",
+                            width: 120, height: 84 }} />
+                    </View>
                     <Text
                         style={[
                             styles.recordingTimestamp,
-                            { fontFamily: "inter",
+                            {
+                                fontFamily: "inter",
                                 fontSize: 20, textAlign: "center", marginTop: 20},
                         ]}
                     >
                         {this.state.sincro ? this.state.filename : "Grabación"}
                     </Text>
-                    <View style={styles.recordingContainer}>
+                    <View style={[styles.recordingContainer]}>
+
                         <TouchableHighlight
                             underlayColor={BACKGROUND_COLOR}
                             style={styles.wrapper}
@@ -592,7 +745,6 @@ export default class Grabar extends React.Component<Props, State> {
                         underlayColor={BACKGROUND_COLOR}
                         style={styles.pause}
                         onPress={this._onPlayPausePressed}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                     >
                         <Image
                             style={styles.image}
@@ -607,7 +759,6 @@ export default class Grabar extends React.Component<Props, State> {
                         underlayColor={BACKGROUND_COLOR}
                         style={styles.play}
                         onPress={this._onRewind}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                     >
                         <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABDUlEQVRoge3XMU4CURSF4V+0MkQrWysKGhdA7N2BLVtgC67CBZC4AFZASWNlTSjpLExsjIahEJIb80beJbeYS85XD+cPCTO8ARERERGJdAVMO7TjMgKWQNORnWoXwBPws4seG47acRkCryZ4bDhqx2UMfBai3nDUTrUbYNYS9ISjdlwegPWBaE04aqfaJfAMbAqRD0c4asflDngrjDfAAhhUhqN2qp0BE+CrMPzN7yPvfHftf+GoHZdbYF4YbIAVcP/n+rZw1I7LI/DeEp0C/cJnSuGonVa9yi+UUuqf0F7qm9hK+xi1Uv+RWWmPElbqw5yV9jhtpX6h2Uv9Smmlfam3roGXDu2IiIiInKwtvnFMQESdO+IAAAAASUVORK5CYII="}} />
                     </TouchableHighlight>
@@ -615,7 +766,6 @@ export default class Grabar extends React.Component<Props, State> {
                         underlayColor={BACKGROUND_COLOR}
                         style={styles.play}
                         onPress={this._onFastForward}
-                        disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
                     >
                         <Image style={styles.image} source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAA/0lEQVRoge3XP0oEMRQH4M8VBG0ESxsLayux9wQewSt4Ba9g4w1svIGljQewEUtbu20EESYW64AuYWH+T+R9kGYm/B4PJpOEEEIIIYSwyT0OZpTTWMIbzmeS06pwQoUb7Eyc07pwPZ5xMmFO58IJH7jC1gQ5jeUK1+MBhyPnNLapcMI7LkbMaWy90DLzrMIt9kbI6dzAER4zzxNecDpwTucGYGG1+D4z779wje2BcnppoHaG18ychCccD5DTawOwa7UxVZm5S1z2nPPHokVDxfmXn1DRi7j432jxG9n6KO4o8XsUe5gr+jhd7IWm6Ctl0Zf6O+zPKCeEEEIIIfz4Bl57TbTeo5DJAAAAAElFTkSuQmCC"}} />
                     </TouchableHighlight>
@@ -668,19 +818,19 @@ export default class Grabar extends React.Component<Props, State> {
                         />
                         <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Archivos </Text>
                     </TouchableOpacity>
-                    {/*<TouchableOpacity*/}
-                    {/*    activeOpacity={0.7}*/}
-                    {/*    onPress={this._loadFile}*/}
-                    {/*    disabled={this.state.isConverting}*/}
-                    {/*    style={styles.bottomButton}>*/}
-                    {/*    <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}*/}
-                    {/*        style={styles.floatingButtonStyle}*/}
-                    {/*    />*/}
-                    {/*    <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>*/}
-                    {/*</TouchableOpacity>*/}
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={this._loadFile}
+                        disabled={this.state.isConverting}
+                        style={styles.bottomButton}>
+                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}
+                            style={styles.floatingButtonStyle}
+                        />
+                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => this.props.navigation.navigate('Comandos')}
                         disabled={this.state.isConverting}
                         style={styles.bottomButton}>
                         <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAA70lEQVR4nO3dQQ6CQBAAQST+/8t65WYiwzbGqgfsAp1J2AtsGwAAAAD/4jGwxmtgjV926hnuU1fBdwSICRATICZATICYALHngj0mzhpHn84dq/c7xQTEBIgJEBMgJkBMgJgAsel35hVWnwMuZQJiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgJgAMQFiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgNgdv61z9f8IbnXPJiAmQEyAmAAxAWICxAQAAAAAgEXed3cFkD3sMwAAAAAASUVORK5CYII="}}
@@ -716,6 +866,12 @@ export default class Grabar extends React.Component<Props, State> {
     }
 }
 
+export const GrabarWrapper = (props) => {
+    return <MyContext.Consumer>
+        {context => (<Grabar navigation={props.navigation} commands={context.commands} newFile={context.filename ? context.user.username + "/" + context.filename : ""}/>)}
+    </MyContext.Consumer>
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -736,6 +892,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         alignSelf: "stretch",
+
 
     },
     play: {

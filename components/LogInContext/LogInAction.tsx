@@ -19,7 +19,6 @@ export const LogInAction = ({username, password, action}) => {
     return <MyContext.Consumer>
         {context => (
             <View style={{ width: "100%" }}>
-                <Text style={{ width: "100%", textAlign: "center" }}>{context.user.username}</Text>
                 <TouchableOpacity
                     activeOpacity={0.7}
                     style={{
@@ -28,7 +27,7 @@ export const LogInAction = ({username, password, action}) => {
                         paddingTop: 6,
                         paddingBottom: 12,
                         borderRadius: 3,
-                        marginTop: 40,
+                        marginTop: 10,
                         marginLeft: "auto",
                         marginRight: "auto"
                     }} onPress={() => {
