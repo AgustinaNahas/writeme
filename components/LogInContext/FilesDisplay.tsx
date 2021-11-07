@@ -13,7 +13,7 @@ export class FilesDisplay extends React.Component<Props, State> {
 
     async componentDidMount() {
 
-        let apiUrl = `http://writeme-api.herokuapp.com/user/${this.props.username}/files`;
+        let apiUrl = `http://192.168.0.129:5000/user/${this.props.username}/files`;
 
         let options = {
             method: 'GET',

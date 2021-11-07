@@ -1,6 +1,16 @@
 import { useState } from "react";
 import React from "react";
-import {Alert, Modal, View, StyleSheet, Text, TouchableHighlight, TextInput, TouchableOpacity} from "react-native";
+import {
+    Alert,
+    Modal,
+    View,
+    StyleSheet,
+    Text,
+    TouchableHighlight,
+    TextInput,
+    TouchableOpacity,
+    Image
+} from "react-native";
 import { Picker } from '@react-native-picker/picker';
 
 export const ComandDisplay = ({comandos, saveComand, deleteComand, openModal, close }) => {

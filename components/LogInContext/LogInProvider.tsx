@@ -14,6 +14,11 @@ export class LogInProvider extends Component {
             {key: "cursiva", value: "i", type: "complex"},
             {key: " punto", value: ". ", type: "simple"},
             {key: " coma", value: ", ", type: "simple"},
+        ],
+        voces: [
+            {key: "Mica"},
+            {key: "Enzo"},
+            {key: "Agus"},
         ]
     };
 
@@ -39,6 +44,7 @@ export class LogInProvider extends Component {
                             commands: commands
                         });
                     },
+                    voces: this.state.voces,
                 }}
             >
                 {this.props.children}

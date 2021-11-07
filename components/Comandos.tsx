@@ -15,11 +15,7 @@ import {ComandDisplay} from "./LogInContext/ComandDisplay";
 
 type Props = {};
 
-type State = {
-    haveRecordingPermissions: boolean;
-};
-
-export default class Comandos extends React.Component<Props, State> {
+export default class Comandos extends React.Component {
 
     constructor() {
         super();
@@ -35,14 +31,6 @@ export default class Comandos extends React.Component<Props, State> {
             <MyContext.Consumer>
                 {context => (
                     <View style={styles.container}>
-
-                        <Text
-                            style={{
-                                padding: 10
-                            }}
-                        >
-                            {context.user.username}
-                        </Text>
                         <View style={{ width: "100%" }}>
                             <View style={{ display: "flex" }}>
 

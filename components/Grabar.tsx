@@ -3,6 +3,7 @@ import {
     Dimensions,
     Image, SafeAreaView, ScrollView,
     Slider,
+    Switch,
     StyleSheet,
     Text,
     TouchableHighlight, TouchableOpacity,
@@ -11,21 +12,21 @@ import {
 import { Audio, AVPlaybackStatus } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Icons from "./Icons";
+import SnackBar from 'react-native-snackbar-component';
 
 
 import logo from "./../assets/images/logo-minimalista.png";
+import loading from "./../assets/images/loading.gif";
 
 import { RichTextEditor, RichTextEditorRef } from './richtext/RichTextEditor'
-import { RichTextEditorToolbar } from './richtext/RichTextEditorToolbar'
 
 import * as DocumentPicker from 'expo-document-picker';
-
-import { WebView } from 'react-native-webview';
 
 import { TextInput } from 'react-native';
 import Editor from "./Editor";
 import {findCommand, replaceComplexCommand, replaceSimpleCommand} from "../common/commands";
 import MyContext from "./LogInContext/Context";
+import {AgregarVoz} from "./AgregarVoz";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -55,8 +56,10 @@ type State = {
     filename: string;
     texto: string;
     isConverting: boolean;
+    isConvertingBackground: boolean;
     textRef: any;
     prevFileLoaded: string;
+    interviewMode: boolean;
 };
 
 export default class Grabar extends React.Component<Props, State> {
@@ -88,13 +91,15 @@ export default class Grabar extends React.Component<Props, State> {
             volume: 1.0,
             rate: 1.0,
             uri: "",
-            folder: "agus",
+            folder: props.username,
             filename: "audio",
             texto: "",
             sincro: false,
             isConverting: false,
+            isConvertingBackground: false,
             textRef: undefined,
-            prevFileLoaded: "none"
+            prevFileLoaded: "none",
+            interviewMode: false
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -126,14 +131,9 @@ export default class Grabar extends React.Component<Props, State> {
 
         var richTextEditorRef = React.createRef<RichTextEditorRef>()
 
-        // console.log(this.props.newFile)
-        // console.log(this.state.prevFileLoaded)
-        // if (this.props.newFile && this.props.newFile.length > 0 && this.state.prevFileLoaded !== "done"){
-        //     this._loadFileServer(this.props.newFile)
-        // }
-
         this.setState({textRef: richTextEditorRef})
     }
+
     componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
         if (this.props.newFile && this.props.newFile.length > 0 && this.state.prevFileLoaded === "none"){
             this._loadFileServer(this.props.newFile)
@@ -398,6 +398,9 @@ export default class Grabar extends React.Component<Props, State> {
     }
 
     private _sendRecording = async () => {
+
+        const comandos = this.props.commands;
+
         console.log("_sendRecording")
 
         const {folder, filename} = this.state;
@@ -423,7 +426,11 @@ export default class Grabar extends React.Component<Props, State> {
 
         async function uploadAudioAsync(uri: string) {
 
-            here.setState({isConverting: true});
+            if (here.state.recordingDuration && here.state.recordingDuration <= 60000){
+                here.setState({isConverting: true});
+            } else {
+                here.setState({isConvertingBackground: true});
+            }
 
             let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
 
@@ -438,8 +445,11 @@ export default class Grabar extends React.Component<Props, State> {
                 "content_type": contentType,
                 "extension": extension,
                 "content": fileBase64,
-                "filename": filename
+                "filename": filename,
+                "duration": here.state.recordingDuration
             }
+
+            // console.log( "filename",  filename)
 
             console.log(fileBase64)
 
@@ -459,15 +469,15 @@ export default class Grabar extends React.Component<Props, State> {
             try {
                 let response = await fetch(apiUrl, options);
                 let result = await response.json();
+
                 if (result.status === "ok"){
                     console.log("Todo ok! Se subió el archivo")
                     console.log(result.status)
                     console.log(result.transcription)
                 } else {
                     console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
+                    console.log(result)
                 }
-
-                const comandos = this.props.commands;
 
                 var texto = result.transcription;
 
@@ -481,8 +491,7 @@ export default class Grabar extends React.Component<Props, State> {
                 })
                 console.log(new Date())
 
-                here.setState({texto: texto, isConverting: false});
-                console.log(new Date())
+                here.setState({texto: texto, isConverting: false, isConvertingBackground: false});
 
             } catch(e) {
                 console.log("Press F")
@@ -609,20 +618,15 @@ export default class Grabar extends React.Component<Props, State> {
                 playThroughEarpieceAndroid: false,
                 staysActiveInBackground: true,
             });
-            if (this.recording !== null) {
-                this.recording.setOnRecordingStatusUpdate(null);
-                this.recording = null;
-            }
 
             const recording = new Audio.Recording();
             await recording.prepareToRecordAsync(this.recordingSettings);
-            recording.setOnRecordingStatusUpdate(this._updateScreenForRecordingStatus);
+            recording.setOnRecordingStatusUpdate(null);
 
-            this.recording = recording;
-            await this.recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
-            await this.recording.stopAndUnloadAsync();
+            await recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
+            await recording.stopAndUnloadAsync();
 
-            const { sound, status } = await this.recording.createNewLoadedSoundAsync(
+            const { sound, status } = await recording.createNewLoadedSoundAsync(
                 {
                     isLooping: false,
                     isMuted: this.state.muted,
@@ -637,6 +641,7 @@ export default class Grabar extends React.Component<Props, State> {
             const result = await DocumentPicker.getDocumentAsync({});
 
             // console.log(result.uri)
+            // await recording.stopAndUnloadAsync();
 
             const audioClip = await Audio.Sound.createAsync(
                 { uri: result.uri }, {}, this._updateScreenForSoundStatus);
@@ -684,21 +689,36 @@ export default class Grabar extends React.Component<Props, State> {
 
         return (
             <View style={styles.container}>
+                <SnackBar visible={this.state.isConvertingBackground} textMessage="La transcripción se realizará en segundo plano. "
+                          actionHandler={()=>{this.setState({ isConvertingBackground: false })}} actionText="ok"/>
+
+                <View style={{ display: this.state.isConverting ? "flex" : "none", position: "absolute", width: "100%", height: "100%",
+                    justifyContent: "center", alignItems: "center", flexDirection: "row", zIndex: 1000,
+                    backgroundColor: "#FDFDFD", opacity: this.state.isConverting ? 0.8 : 0 }}>
+                    <Image source={loading} style={{ backgroundColor: "white", width: 80, height: 84 }} />
+                </View>
+
+
                 <View style={[ styles.quarterScreenContainer, { opacity: this.state.isLoading ? DISABLED_OPACITY : 1.0} ]} >
                     <View style={{ width: "100%", position: "absolute", opacity: 0.2, height: 120 }}>
                         <Image source={logo} style={{ marginTop: "auto", marginLeft: "auto", marginRight: "auto",
                             width: 120, height: 84 }} />
                     </View>
-                    <Text
-                        style={[
-                            styles.recordingTimestamp,
-                            {
-                                fontFamily: "inter",
-                                fontSize: 20, textAlign: "center", marginTop: 20},
-                        ]}
-                    >
-                        {this.state.sincro ? this.state.filename : "Grabación"}
-                    </Text>
+
+                    <View style={{ display: "flex", width: "100%", flexDirection: 'row'}}>
+                        <View style={{ width: "100%"}}>
+                            <Text
+                                style={[
+                                    styles.recordingTimestamp,
+                                    {
+                                        fontFamily: "inter",
+                                        fontSize: 20, textAlign: "center", marginTop: 20},
+                                ]}
+                            >
+                                {this.state.sincro ? this.state.filename : "Grabación"}
+                            </Text>
+                        </View>
+                    </View>
                     <View style={[styles.recordingContainer]}>
 
                         <TouchableHighlight
@@ -800,65 +820,107 @@ export default class Grabar extends React.Component<Props, State> {
                 </View>
 
                 <View
-                    style={[
-                        styles.bottomContainer,
-
-                    ]}
+                    style={[ styles.bottomContainer ]}
                 >
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => this.props.navigation.navigate('Lista grabaciones')}
-                        style={styles.bottomButton}>
-                        <Image
-                            source={{
-                                uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACnUlEQVR4nO3cPW4TQRyG8QeIU3KQRKJCgoKCBhpE5yNwgZyAlEiIjygtHU0kbkCOkQAtFwAh7FSJFArHJFl/7Myux/+1/fyk6SY7u+/r3bUda0GSJEmSJEmSJGnSLvABOAWGwGXhsb+cw+q+beAQuKB86JZQsQ0cs/zgLeHKIbHhb3QJu8RcdizhykfiQ6+ON0WPuGO+ER/4Rp8JA+LDXtsz4U7CnMvie7HazoCfwFfgE/B90QtEv8pXaVwAB0AvNVzPgDKOgRfAed3Eu+X3ZSM9A96mTPQMKOcCeAD8mDfJM6CcLeBV3SQLKOt53QQvQWUNgPvzJiyigJRtrLNW+XgJCmYBwSwgmAUEs4BgFhDMAoJZQDALCGYBwSwgmAUEs4BgFhDMAoJZQFnDugkWUM4Z8HIRG6r7MdKmm5bJEHhacgELuFY0/GkLWMBtRcOvLmABk4qGf3MBC5iuaPjjBSxgtqLhgwXUedLmj/1hVjA/iAWzgGAWUNYe8Bs4AR423Yg34Wb2uZ3TH+Bxkw1ZQL5q+K1KsIA8s8JvXIIFpOtTn9e4hEepG7WAdFvAEeklJN2YLSBPTgknKRu0gPn6jEK/KbWEXykLWMBs4xvuEc1K2EtZxAKmq77b+cJkCfeAz0zP7XXqQhYwadZbzdQSksNnxkKbXEDd+/y6ErLCB/hbs+AqjwF53+fXhT8es+4J/Yy1/jvNOKBVGqXCn1dCI+8zF16FkftvxNzwx2Pa5SjbDt16bGXXX/nV0eiyU3XQcie6MpYd/sKe7Nhj9FC66AA3MvyxHqOHuJ633DHDb2kHeMfoi6QuP1N0LcNfd23Dz/6QpWuGH8jwAxl+IMMPZPiBDD+Q4Qcz/GCGH8zwgxl+MMMPZvjBDD9Yp8L/B5CcaYMydu31AAAAAElFTkSuQmCC",
-                            }}
-                            //source={require('./images/float-add-icon.png')}
-                            style={styles.floatingButtonStyle}
-                        />
-                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Archivos </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={this._loadFile}
-                        disabled={this.state.isConverting}
-                        style={styles.bottomButton}>
-                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}
-                            style={styles.floatingButtonStyle}
-                        />
-                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => this.props.navigation.navigate('Comandos')}
-                        disabled={this.state.isConverting}
-                        style={styles.bottomButton}>
-                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAA70lEQVR4nO3dQQ6CQBAAQST+/8t65WYiwzbGqgfsAp1J2AtsGwAAAAD/4jGwxmtgjV926hnuU1fBdwSICRATICZATICYALHngj0mzhpHn84dq/c7xQTEBIgJEBMgJkBMgJgAsel35hVWnwMuZQJiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgJgAMQFiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgNgdv61z9f8IbnXPJiAmQEyAmAAxAWICxAQAAAAAgEXed3cFkD3sMwAAAAAASUVORK5CYII="}}
-                            style={styles.floatingButtonStyle}
-                        />
-                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Comandos </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={this._manageVoices}
-                        disabled={this.state.isConverting}
-                        style={styles.bottomButton}>
-                        <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACoUlEQVR4nO3dTWoUQQDF8b+iK+2sxCQEF3oSXeigxuQSEsWTuBdFj6HBixhF3OhC1J1KNKCJ0C5qGhkMXXRNTb3pyvtBrzp0Xs2b/phmphrMzMzMzMzMzOykOJV5exvANrAJXAYuAecKZxiqjaw/AD4CH4Bd4DnwedGhhroAPAR+EwY0ZFEbmvcIeAasKcIe5ybwneEDGWsB3fINmAjyzrgH/CF9EGMuoCWMfad85GBC2B3nGcDYC+hKuF069BrzHXZqKqA7HK2WDP00U/BaCmiBx6UCb5Dn0FNbAYfA+tB/fjoh8DZwJvI3e4TPAg3hOr9vUYvla4A7wOvIds4SXpuFe0n/O+EVcL5EkMIaQgl9Y98tEeRdJMRmiRAiW/SP/W2JEPuREDW++zsN/WPfH7rBlGNw7MS5DMf1Rco6/pSTsGXkAsRcgFjsen4ZVXUO8h4g5gLEXIDYqI6XUz4HWD4uQMwFiLkAMRcg5gLEXICY4l6Q+jpe/f9neA8QcwFiLkDMBYi5ADEXIOYCxFyAmAsQcwFiLkDMBYi5ADEXIOYCxEb1HZqppbqfPy/vAWIuQMwFiLkAMRcg5gLEXIBYyveCqroOT+DfCdfEBYi5ALEx/k64qnOM9wAxFyDmAsRSCvgRWV/zhE0rkfWx1+Y/KQXEJq6+mrDNsbgWWf+pRIjYpH17hKm9arMCvGEJJu17EAnREmYX3KKOIhrCdJSxF78F7pcI5IlbM07cmupJxuBqucbxqGToVcKE1S4gLF+Bi6WDX8fT17eE6etvFU89tcPJfoDDEXC3fORZE+Y7HKnNc9i5Ich7rO4hPr+ov4BDMj7EJ/et3XX+PcbqCuExVrFbE+rby7E3wU/CY6zeEz5ovQC+LDqUmZmZmZmZmZnV5y+7p0tjVA3rhwAAAABJRU5ErkJggg=="}}
-                               style={styles.floatingButtonStyle}
-                        />
-                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Voces </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={this._sendRecording}
-                        style={styles.bottomButton}>
-                        <Image
-                            source={{
-                                uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABSElEQVRoge2ZvW7CMBRGD1UHGFp1hr2v2G6lW/smsDDzTkhIyQvAkKJWln1zY8c/qPdIlkA20Xdk59ohYBiG0TKvwAHogUvh1gN7YJMS/lwhuNtOsRKHBsLf2i4UciEI9MDTROlcdMCLr0MSqM3F+e7N+lAgSFZMoDaPI/1bYAm8C2PctTqVbPfhlt8y9iWMSy2R2utGhx+TaE7AF16SaEpACq9ZTnMyWUATvqSESkCqAKqdMCP/Yyce2wc0aG+wLDN49zNgArWZ4x6o+kxx9zPQksAb8sb1t+9Dc8Gk02AkroSvqcLj+aF2XOphTpJQh68pEJKYFL62gCsRDD9HGc3FN7D6+fwZGtTyaVRFS2U0ChOojbSuO+C5VJARgn/uSjNwzJMliqgsG4aXC6l1PrWdgHWMwE1izzCFpYN3DC82osMbhmHk5wojHnjCVnpIzAAAAABJRU5ErkJggg==",
-                            }} style={styles.floatingButtonStyle}
-                        />
-                        <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Transcribir </Text>
-                    </TouchableOpacity>
+                    <View style={{ width: "100%", display: "flex", flexDirection: 'row',}}>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => this.props.navigation.navigate('Lista grabaciones')}
+                            style={styles.bottomButton}>
+                            <Image
+                                source={{
+                                    uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACnUlEQVR4nO3cPW4TQRyG8QeIU3KQRKJCgoKCBhpE5yNwgZyAlEiIjygtHU0kbkCOkQAtFwAh7FSJFArHJFl/7Myux/+1/fyk6SY7u+/r3bUda0GSJEmSJEmSJGnSLvABOAWGwGXhsb+cw+q+beAQuKB86JZQsQ0cs/zgLeHKIbHhb3QJu8RcdizhykfiQ6+ON0WPuGO+ER/4Rp8JA+LDXtsz4U7CnMvie7HazoCfwFfgE/B90QtEv8pXaVwAB0AvNVzPgDKOgRfAed3Eu+X3ZSM9A96mTPQMKOcCeAD8mDfJM6CcLeBV3SQLKOt53QQvQWUNgPvzJiyigJRtrLNW+XgJCmYBwSwgmAUEs4BgFhDMAoJZQDALCGYBwSwgmAUEs4BgFhDMAoJZQFnDugkWUM4Z8HIRG6r7MdKmm5bJEHhacgELuFY0/GkLWMBtRcOvLmABk4qGf3MBC5iuaPjjBSxgtqLhgwXUedLmj/1hVjA/iAWzgGAWUNYe8Bs4AR423Yg34Wb2uZ3TH+Bxkw1ZQL5q+K1KsIA8s8JvXIIFpOtTn9e4hEepG7WAdFvAEeklJN2YLSBPTgknKRu0gPn6jEK/KbWEXykLWMBs4xvuEc1K2EtZxAKmq77b+cJkCfeAz0zP7XXqQhYwadZbzdQSksNnxkKbXEDd+/y6ErLCB/hbs+AqjwF53+fXhT8es+4J/Yy1/jvNOKBVGqXCn1dCI+8zF16FkftvxNzwx2Pa5SjbDt16bGXXX/nV0eiyU3XQcie6MpYd/sKe7Nhj9FC66AA3MvyxHqOHuJ633DHDb2kHeMfoi6QuP1N0LcNfd23Dz/6QpWuGH8jwAxl+IMMPZPiBDD+Q4Qcz/GCGH8zwgxl+MMMPZvjBDD9Yp8L/B5CcaYMydu31AAAAAElFTkSuQmCC",
+                                }}
+                                //source={require('./images/float-add-icon.png')}
+                                style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Archivos </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={this._loadFile}
+                            disabled={this.state.isConverting}
+                            style={styles.bottomButton}>
+                            <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}
+                                   style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => this.props.navigation.navigate('Comandos')}
+                            disabled={this.state.isConverting}
+                            style={styles.bottomButton}>
+                            <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAA70lEQVR4nO3dQQ6CQBAAQST+/8t65WYiwzbGqgfsAp1J2AtsGwAAAAD/4jGwxmtgjV926hnuU1fBdwSICRATICZATICYALHngj0mzhpHn84dq/c7xQTEBIgJEBMgJkBMgJgAsel35hVWnwMuZQJiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgJgAMQFiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgNgdv61z9f8IbnXPJiAmQEyAmAAxAWICxAQAAAAAgEXed3cFkD3sMwAAAAAASUVORK5CYII="}}
+                                   style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Comandos </Text>
+                            <View style={{ backgroundColor: '#A10060', position: "absolute", borderRadius: 10, bottom: 20, right: 5 }}>
+                                <Text style={{ paddingVertical: 4, paddingHorizontal: 7, color: "white", fontFamily: "inter", fontSize: 10, textAlign: "center" }}>
+                                    { this.props.commands.length }
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => this.props.navigation.navigate('Voces')}
+                            disabled={this.state.isConverting}
+                            style={styles.bottomButton}>
+                            <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACoUlEQVR4nO3dTWoUQQDF8b+iK+2sxCQEF3oSXeigxuQSEsWTuBdFj6HBixhF3OhC1J1KNKCJ0C5qGhkMXXRNTb3pyvtBrzp0Xs2b/phmphrMzMzMzMzMzOykOJV5exvANrAJXAYuAecKZxiqjaw/AD4CH4Bd4DnwedGhhroAPAR+EwY0ZFEbmvcIeAasKcIe5ybwneEDGWsB3fINmAjyzrgH/CF9EGMuoCWMfad85GBC2B3nGcDYC+hKuF069BrzHXZqKqA7HK2WDP00U/BaCmiBx6UCb5Dn0FNbAYfA+tB/fjoh8DZwJvI3e4TPAg3hOr9vUYvla4A7wOvIds4SXpuFe0n/O+EVcL5EkMIaQgl9Y98tEeRdJMRmiRAiW/SP/W2JEPuREDW++zsN/WPfH7rBlGNw7MS5DMf1Rco6/pSTsGXkAsRcgFjsen4ZVXUO8h4g5gLEXIDYqI6XUz4HWD4uQMwFiLkAMRcg5gLEXICY4l6Q+jpe/f9neA8QcwFiLkDMBYi5ADEXIOYCxFyAmAsQcwFiLkDMBYi5ADEXIOYCxEb1HZqppbqfPy/vAWIuQMwFiLkAMRcg5gLEXIBYyveCqroOT+DfCdfEBYi5ALEx/k64qnOM9wAxFyDmAsRSCvgRWV/zhE0rkfWx1+Y/KQXEJq6+mrDNsbgWWf+pRIjYpH17hKm9arMCvGEJJu17EAnREmYX3KKOIhrCdJSxF78F7pcI5IlbM07cmupJxuBqucbxqGToVcKE1S4gLF+Bi6WDX8fT17eE6etvFU89tcPJfoDDEXC3fORZE+Y7HKnNc9i5Ich7rO4hPr+ov4BDMj7EJ/et3XX+PcbqCuExVrFbE+rby7E3wU/CY6zeEz5ovQC+LDqUmZmZmZmZmZnV5y+7p0tjVA3rhwAAAABJRU5ErkJggg=="}}
+                                   style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Voces </Text>
+                            <View style={{ backgroundColor: '#A10060', position: "absolute", borderRadius: 10, bottom: 20, right: 5 }}>
+                                <Text style={{ paddingVertical: 4, paddingHorizontal: 7, color: "white", fontFamily: "inter", fontSize: 10, textAlign: "center" }}>
+                                    { this.props.voces.length }
+                                </Text>
+                            </View>
+
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={this._sendRecording}
+                            style={styles.bottomButton}>
+                            <Image
+                                source={{
+                                    uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABSElEQVRoge2ZvW7CMBRGD1UHGFp1hr2v2G6lW/smsDDzTkhIyQvAkKJWln1zY8c/qPdIlkA20Xdk59ohYBiG0TKvwAHogUvh1gN7YJMS/lwhuNtOsRKHBsLf2i4UciEI9MDTROlcdMCLr0MSqM3F+e7N+lAgSFZMoDaPI/1bYAm8C2PctTqVbPfhlt8y9iWMSy2R2utGhx+TaE7AF16SaEpACq9ZTnMyWUATvqSESkCqAKqdMCP/Yyce2wc0aG+wLDN49zNgArWZ4x6o+kxx9zPQksAb8sb1t+9Dc8Gk02AkroSvqcLj+aF2XOphTpJQh68pEJKYFL62gCsRDD9HGc3FN7D6+fwZGtTyaVRFS2U0ChOojbSuO+C5VJARgn/uSjNwzJMliqgsG4aXC6l1PrWdgHWMwE1izzCFpYN3DC82osMbhmHk5wojHnjCVnpIzAAAAABJRU5ErkJggg==",
+                                }} style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Transcribir </Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{
+                        width: "100%", display: "flex", justifyContent: this.state.recordingDuration ? "space-between" : "flex-end",
+                        flexDirection: 'row', paddingLeft: 16, paddingRight: 16, marginTop: 20, marginBottom: 16
+                    }}>
+                        { this.state.recordingDuration ?
+                            <AgregarVoz guardar={(algo) => {console.log(algo)}} />
+                            : null
+                        }
+                        <View style={{ display: "flex", flexDirection: "row", alignSelf: "flex-end" }}>
+                            <Text style={{
+                                fontFamily: "inter",
+                                fontSize: 12,
+                                textAlign: "center",
+                                marginTop: 6,
+                                marginRight: 6
+                            }}> Modo {this.state.interviewMode ? "entrevista" : "individual"} </Text>
+                            <Image style={styles.image}
+                                   source={{
+                                       uri: this.state.interviewMode ? "data:image/png;base64,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" : "data:image/png;base64,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"
+                                   }}
+                            />
+                            <Switch
+                                trackColor={{false: '#767577', true: '#A10060'}}
+                                thumbColor={this.state.interviewMode ? '#f4f3f4' : '#f4f3f4'}
+                                ios_backgroundColor="#3e3e3e"
+                                onValueChange={() => {
+                                    this.setState({interviewMode: !this.state.interviewMode})
+                                }}
+                                value={this.state.interviewMode}
+                            />
+                        </View>
+                    </View>
                 </View>
 
             </View>
@@ -868,7 +930,12 @@ export default class Grabar extends React.Component<Props, State> {
 
 export const GrabarWrapper = (props) => {
     return <MyContext.Consumer>
-        {context => (<Grabar navigation={props.navigation} commands={context.commands} newFile={context.filename ? context.user.username + "/" + context.filename : ""}/>)}
+        {context => (<Grabar navigation={props.navigation}
+                             commands={context.commands}
+                             voces={context.voces}
+                             newFile={context.filename ? context.user.username + "/" + context.filename : ""}
+                            username={context.user.username}
+        />)}
     </MyContext.Consumer>
 }
 
@@ -877,6 +944,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: "column",
         alignItems: "center",
+        justifyContent: "space-between",
         alignSelf: "stretch",
         backgroundColor: BACKGROUND_COLOR,
         minHeight: (DEVICE_HEIGHT - 64),
@@ -942,14 +1010,13 @@ const styles = StyleSheet.create({
         marginTop: 0,
     },
     bottomContainer:{
-        flexDirection: "row",
+        flexDirection: "column",
         alignSelf: "flex-end",
-        justifyContent: "space-evenly",
-        height: (DEVICE_HEIGHT - 64) / 4,
-        maxHeight: (DEVICE_HEIGHT - 64) / 4,
+        justifyContent: "flex-end",
+        height: "30%",
+        maxHeight: "30%",
         width: "100%",
-        maxWidth: "100%",
-
+        maxWidth: "100%"
     },
     recordingContainer: {
         flex: 1,

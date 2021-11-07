@@ -4,8 +4,8 @@ import MyContext from "./Context";
 import {Text, TouchableOpacity, View} from "react-native";
 
 
-export const LogInAction = ({username, password, action}) => {
-    const login = () => {
+export const SignUpAction = ({username, password, action}) => {
+    const signup = () => {
         const credenciales = {
             "agus": "agus",
             "enzo": "enzo",
@@ -31,7 +31,7 @@ export const LogInAction = ({username, password, action}) => {
                         marginLeft: "auto",
                         marginRight: "auto"
                     }} onPress={() => {
-                        if (login()) {
+                        if (signup()) {
                             action();
                             context.setName(username)
                         }
@@ -42,7 +42,7 @@ export const LogInAction = ({username, password, action}) => {
                         textAlign: "center",
                         marginTop: 6,
                         color: "white"
-                    }}> Ingresar </Text>
+                    }}> Registrarse </Text>
                 </TouchableOpacity>
             </View>
         )}

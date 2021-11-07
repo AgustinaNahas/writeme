@@ -1,12 +1,10 @@
 import React from "react";
 import {
     Dimensions, Image,
-    StyleSheet, Text, TextInput, TouchableHighlight, TouchableOpacity,
+    StyleSheet, Text, TextInput, TouchableOpacity,
     View,
 } from "react-native";
-import * as Icons from "./Icons";
-import {LogInProvider} from "./LogInContext/LogInProvider";
-import {LogInAction} from "./LogInContext/LogInAction";
+import {SignUpAction} from "./LogInContext/SignUpAction";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -17,7 +15,7 @@ type State = {
     haveRecordingPermissions: boolean;
 };
 
-export default class LogIn extends React.Component<Props, State> {
+export default class SignUp extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
@@ -103,7 +101,30 @@ export default class LogIn extends React.Component<Props, State> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
-                                <LogInAction {...this.state} action={() => this.props.navigation.navigate('WriteMe')}/>
+                            <Text
+                                style={{fontFamily: "cutive-mono-regular", width: "75%"}}
+                            >
+                                Repetir contraseña:
+                            </Text>
+                            <TextInput
+                                style={{
+                                    height: 40,
+                                    borderColor: '#ADB5BD',
+                                    borderWidth: 1,
+                                    width: "75%",
+                                    marginTop: 16,
+                                    padding: 6,
+                                    borderRadius: 3
+                                }}
+                                autoCapitalize="none"
+                                autoCompleteType="password"
+                                autoCorrect={false}
+                                secureTextEntry={true}
+                                onChangeText={text => {
+                                    this.setState({passwordAgain: text})
+                                }}
+                                value={this.state.passwordAgain}
+                            />
                         </View>
                         <View style={{
                             width: '100%',
@@ -112,28 +133,7 @@ export default class LogIn extends React.Component<Props, State> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
-                            <View style={{ width: "100%" }}>
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    style={{
-                                        backgroundColor: "white",
-                                        width: "75%",
-                                        paddingTop: 6,
-                                        paddingBottom: 12,
-                                        borderRadius: 3,
-                                        marginTop: 10,
-                                        marginLeft: "auto",
-                                        marginRight: "auto"
-                                    }} onPress={() => { this.props.navigation.navigate('SignUp') }}>
-                                    <Text style={{
-                                        fontFamily: "inter",
-                                        fontSize: 12,
-                                        textAlign: "center",
-                                        marginTop: 6,
-                                        color: "#A10060",
-                                    }}> Registrarse </Text>
-                                </TouchableOpacity>
-                            </View>
+                                <SignUpAction {...this.state} action={() => this.props.navigation.navigate('WriteMe')}/>
                         </View>
                     </View>
                 </View>

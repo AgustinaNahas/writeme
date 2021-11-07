@@ -11,6 +11,8 @@ import logo from "./assets/images/logo-minimalista.png";
 import LogIn from "./components/LogIn";
 import {LogInProvider} from "./components/LogInContext/LogInProvider";
 import Comandos from "./components/Comandos";
+import SignUp from "./components/SignUp";
+import Voces from "./components/Voces";
 
 const Stack = createStackNavigator();
 
@@ -45,9 +47,11 @@ function App() {
           <NavigationContainer>
             <Stack.Navigator initialRouteName="LogIn">
               <Stack.Screen name="LogIn" component={LogIn} />
+              <Stack.Screen name="SignUp" component={SignUp} />
               <Stack.Screen name="WriteMe" component={fonts ? GrabarWrapper : Loading} />
               <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
               <Stack.Screen name="Comandos" component={Comandos} />
+              <Stack.Screen name="Voces" component={Voces} />
             </Stack.Navigator>
           </NavigationContainer>
       </LogInProvider>
