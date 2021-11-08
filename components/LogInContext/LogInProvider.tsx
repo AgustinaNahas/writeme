@@ -9,6 +9,7 @@ export class LogInProvider extends Component {
             username: "Agus"
         },
         filename: "",
+        token: undefined,
         commands: [
             {key: "negrita", value: "b", type: "complex"},
             {key: "cursiva", value: "i", type: "complex"},
@@ -28,6 +29,7 @@ export class LogInProvider extends Component {
                 value={{
                     user: this.state.user,
                     filename: this.state.filename,
+                    token: this.state.token,
                     commands: this.state.commands,
                     setName: texto => {
                         this.setState({
@@ -42,6 +44,11 @@ export class LogInProvider extends Component {
                     setCommands: commands => {
                         this.setState({
                             commands: commands
+                        });
+                    },
+                    setToken: texto => {
+                        this.setState({
+                            token: texto
                         });
                     },
                     voces: this.state.voces,

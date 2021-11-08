@@ -13,11 +13,17 @@ export class FilesDisplay extends React.Component<Props, State> {
 
     async componentDidMount() {
 
-        let apiUrl = `http://192.168.0.129:5000/user/${this.props.username}/files`;
+        let apiUrl = `https://writeme-api.herokuapp.com/user/${this.props.username}/files`;
 
         let options = {
-            method: 'GET',
+            method: 'POST',
+            body: {
+                token: this.props.token
+            },
         };
+
+        console.log(apiUrl)
+        console.log(options)
 
         try {
             let response = await fetch(apiUrl, options);
@@ -26,6 +32,8 @@ export class FilesDisplay extends React.Component<Props, State> {
             if (result.length > 0) {
                 this.setState({files: result})
             }
+
+            console.log(result)
         } catch(e) {
             console.log("Press F")
             console.log(e);

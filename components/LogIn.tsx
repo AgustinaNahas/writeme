@@ -10,26 +10,22 @@ import {LogInAction} from "./LogInContext/LogInAction";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
+import SnackBar from 'react-native-snackbar-component';
 
 type Props = {};
 
-type State = {
-    haveRecordingPermissions: boolean;
-};
-
-export default class LogIn extends React.Component<Props, State> {
+export default class LogIn extends React.Component<Props> {
 
     constructor(props: Props) {
         super(props);
         this.state = {
             username: "enzo",
             password: "enzo",
+            error: false,
         }
     }
 
-
     render() {
-
         return (
                 <View style={styles.container}>
                     <View style={{display: 'flex', width: '100%', paddingTop: 60}}>
@@ -103,7 +99,11 @@ export default class LogIn extends React.Component<Props, State> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
-                                <LogInAction {...this.state} action={() => this.props.navigation.navigate('WriteMe')}/>
+                                <LogInAction {...this.state} action={() => this.props.navigation.navigate('WriteMe')}
+                                             error={() => {
+                                                 console.log("Error!!!")
+                                                 this.setState({error: true})
+                                             }}/>
                         </View>
                         <View style={{
                             width: '100%',

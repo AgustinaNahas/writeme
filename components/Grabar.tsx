@@ -18,8 +18,6 @@ import SnackBar from 'react-native-snackbar-component';
 import logo from "./../assets/images/logo-minimalista.png";
 import loading from "./../assets/images/loading.gif";
 
-import { RichTextEditor, RichTextEditorRef } from './richtext/RichTextEditor'
-
 import * as DocumentPicker from 'expo-document-picker';
 
 import { TextInput } from 'react-native';
@@ -27,6 +25,7 @@ import Editor from "./Editor";
 import {findCommand, replaceComplexCommand, replaceSimpleCommand} from "../common/commands";
 import MyContext from "./LogInContext/Context";
 import {AgregarVoz} from "./AgregarVoz";
+import {createAndSavePDF} from "./htmltopdf/Export";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -55,9 +54,9 @@ type State = {
     folder: string;
     filename: string;
     texto: string;
+    textoEditor: string;
     isConverting: boolean;
     isConvertingBackground: boolean;
-    textRef: any;
     prevFileLoaded: string;
     interviewMode: boolean;
 };
@@ -94,10 +93,10 @@ export default class Grabar extends React.Component<Props, State> {
             folder: props.username,
             filename: "audio",
             texto: "",
+            textoEditor: "",
             sincro: false,
             isConverting: false,
             isConvertingBackground: false,
-            textRef: undefined,
             prevFileLoaded: "none",
             interviewMode: false
         };
@@ -128,10 +127,6 @@ export default class Grabar extends React.Component<Props, State> {
 
     componentDidMount() {
         this._askForPermissions();
-
-        var richTextEditorRef = React.createRef<RichTextEditorRef>()
-
-        this.setState({textRef: richTextEditorRef})
     }
 
     componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
@@ -440,18 +435,30 @@ export default class Grabar extends React.Component<Props, State> {
 
             let contentType = here.getMimeType(extension);
 
+            // console.log("token")
+            // console.log(here.props.token)
+
             var data = {
                 "folder": folder,
                 "content_type": contentType,
                 "extension": extension,
                 "content": fileBase64,
                 "filename": filename,
+                "token": here.props.token,
                 "duration": here.state.recordingDuration
             }
 
-            // console.log( "filename",  filename)
+            console.log("data", {
+                "folder": folder,
+                "content_type": contentType,
+                "extension": extension,
+                "content": fileBase64.substring(0, 10) + "...",
+                "filename": filename,
+                "token": here.props.token,
+                "duration": here.state.recordingDuration
+            })
 
-            console.log(fileBase64)
+            // console.log(fileBase64)
 
             let options = {
                 method: 'POST',
@@ -491,7 +498,7 @@ export default class Grabar extends React.Component<Props, State> {
                 })
                 console.log(new Date())
 
-                here.setState({texto: texto, isConverting: false, isConvertingBackground: false});
+                here.setState({texto: texto, textoEditor: texto, isConverting: false, isConvertingBackground: false});
 
             } catch(e) {
                 console.log("Press F")
@@ -561,7 +568,7 @@ export default class Grabar extends React.Component<Props, State> {
                 const apiUrl = "https://writeme-api.herokuapp.com/audio"
                 const options = {
                     method: 'POST',
-                    body: JSON.stringify({ path: path }),
+                    body: JSON.stringify({ path: path, token: this.props.token }),
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
@@ -804,18 +811,32 @@ export default class Grabar extends React.Component<Props, State> {
 
                 <View style={{ display: 'flex', flexDirection: 'row', paddingLeft: 15, paddingRight: 15, marginTop: 16 }}>
                     <TextInput
-                        style={{ height: 40, borderColor: '#ADB5BD', borderWidth: 1, width: "100%", padding: 6, borderRadius: 3  }}
+                        style={{ height: 40, borderColor: '#ADB5BD', borderWidth: 1, width: "75%", padding: 6, borderRadius: 3  }}
                         onChangeText={text => {
                             this.setState({filename: text})
                         }}
                         value={this.state.filename}
                     />
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={{ marginLeft: "5%", padding: 6, width: "10%" }}
+                        onPress={() => console.log("Guardar")} >
+                        <Image style={{ height: 24, width: 24 }} source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAr0lEQVRIie2VwQ2DMAxFHxVzlHUYoBLr9NiVaBmAOcIGpTcOcIBKaZTIdhA98aQc4sT+tmMpcGKkBgZgNq67VsBlBDeJfC9buAHT5vc4QsAkEgpIbfFpYvYiIuDbpWokfy5CgN2UwnmYoZnDK9AKVEAHfIAXcM0VTI1px+/0PI3+4oUxEHhr/bUt6oW9mlQFFWtbRqAl/QbZLcpO8O9jOgSZWJcfI0rNvj/BbTFO9CwJUnYXb9ZZ6AAAAABJRU5ErkJggg=="}}/>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={{ padding: 6, width: "10%" }}
+                        onPress={() => this.props.navigation.navigate('Lista grabaciones')} >
+                        <Image style={{ height: 24, width: 24 }} source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAXklEQVRIie2UQQqAMAwEh77O+irfav1HPbSXUoxCIvSwA0tuO+SyIFZiBwpQH3J4BVZ5iOSt/GsKkP8UVOC0BF6GnhRQaCKBBBKMgqtf70xA26OJTNuQiB3aHE+LYG6EiF/4KCIp9wAAAABJRU5ErkJggg=="}}/>
+                    </TouchableOpacity>
                 </View>
 
                 <View
                     style={{ maxHeight: "30%", marginTop: 16 }}
                 >
-                    <Editor texto={this.state.texto}/>
+                    <Editor setTexto={(text) => {
+                        this.setState({textoEditor: text})
+                    }} texto={this.state.texto}/>
                     <View />
                 </View>
 
@@ -825,19 +846,6 @@ export default class Grabar extends React.Component<Props, State> {
                     <View style={{ width: "100%", display: "flex", flexDirection: 'row',}}>
                         <TouchableOpacity
                             activeOpacity={0.7}
-                            onPress={() => this.props.navigation.navigate('Lista grabaciones')}
-                            style={styles.bottomButton}>
-                            <Image
-                                source={{
-                                    uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACnUlEQVR4nO3cPW4TQRyG8QeIU3KQRKJCgoKCBhpE5yNwgZyAlEiIjygtHU0kbkCOkQAtFwAh7FSJFArHJFl/7Myux/+1/fyk6SY7u+/r3bUda0GSJEmSJEmSJGnSLvABOAWGwGXhsb+cw+q+beAQuKB86JZQsQ0cs/zgLeHKIbHhb3QJu8RcdizhykfiQ6+ON0WPuGO+ER/4Rp8JA+LDXtsz4U7CnMvie7HazoCfwFfgE/B90QtEv8pXaVwAB0AvNVzPgDKOgRfAed3Eu+X3ZSM9A96mTPQMKOcCeAD8mDfJM6CcLeBV3SQLKOt53QQvQWUNgPvzJiyigJRtrLNW+XgJCmYBwSwgmAUEs4BgFhDMAoJZQDALCGYBwSwgmAUEs4BgFhDMAoJZQFnDugkWUM4Z8HIRG6r7MdKmm5bJEHhacgELuFY0/GkLWMBtRcOvLmABk4qGf3MBC5iuaPjjBSxgtqLhgwXUedLmj/1hVjA/iAWzgGAWUNYe8Bs4AR423Yg34Wb2uZ3TH+Bxkw1ZQL5q+K1KsIA8s8JvXIIFpOtTn9e4hEepG7WAdFvAEeklJN2YLSBPTgknKRu0gPn6jEK/KbWEXykLWMBs4xvuEc1K2EtZxAKmq77b+cJkCfeAz0zP7XXqQhYwadZbzdQSksNnxkKbXEDd+/y6ErLCB/hbs+AqjwF53+fXhT8es+4J/Yy1/jvNOKBVGqXCn1dCI+8zF16FkftvxNzwx2Pa5SjbDt16bGXXX/nV0eiyU3XQcie6MpYd/sKe7Nhj9FC66AA3MvyxHqOHuJ633DHDb2kHeMfoi6QuP1N0LcNfd23Dz/6QpWuGH8jwAxl+IMMPZPiBDD+Q4Qcz/GCGH8zwgxl+MMMPZvjBDD9Yp8L/B5CcaYMydu31AAAAAElFTkSuQmCC",
-                                }}
-                                //source={require('./images/float-add-icon.png')}
-                                style={styles.floatingButtonStyle}
-                            />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Archivos </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            activeOpacity={0.7}
                             onPress={this._loadFile}
                             disabled={this.state.isConverting}
                             style={styles.bottomButton}>
@@ -845,6 +853,18 @@ export default class Grabar extends React.Component<Props, State> {
                                    style={styles.floatingButtonStyle}
                             />
                             <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => {
+                                createAndSavePDF(this.state.textoEditor)
+                            }}
+                            disabled={this.state.isConverting}
+                            style={styles.bottomButton}>
+                            <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAEFklEQVR4nO2dy4tOYRjAf0y+psag1IRptshYYGNBkY0kthIpl7+BndvKCmOaothY2FhIScqlZiESiXGLDbGgRi4zGHO1eH01fXO+c5nz3s/zq7OZd877PO/z+879fN8LgiAIgiAIgiAI5VkNnAVeAMPAlOPluNnh+kMN6AMmcF/0ykmoAXdxX+jKSujDfYErK2E1MI774lZWQg/ui1p0OWWkEo54ifuCVnpLGMJ9MSu9JWQN0rd8opMQuoDgJcQgIGgJsQgIVkJMAoKUEJuA4CTEKCAoCbEKCEZCzAKCkBC7AO8lVEGA1xKqIsBbCVUS4KWEqgnwTkIVBXgloaoCtEiYU7YDsousI0YRbEsvNb65urIQZocIcIwIiADbB+EFQC/wDvVCwANgu4E4dXw7yZiBzQRbgP4mcXZrjlVHBExjf0qc78B8zfFIiadlfKEdA3aktC0EdtlKRBehCViR0b7WShYaCU3AWEZ7p5UsNBKagB8Z7fOsZKGR0AQ8zmgftJKFRkIT8Cij/auVLDQSmoB+1HfQmvHaViI+YftC5U5KrDUG4smFWAMHm8QZQX1ZUDcioIFFwM+EOPcMxCIhTqWvhEHdcriQ8PebthPxBReb6BLgT0OcVYZiyS6oCbenxRgB2gzFEQEJtDHzdyiOGoolAhLYlxDnF9BlIJYISOBWk1iXDcQSAQ0sJf2nEbZqjicCGjiZEe890G4grhFCezGrFfgAdGT833NgFHXRVr/WGUc9yB9A7aqiuW9kcwtIeyZcZJlESWjVnJ8TbAlYj/rU6hBQX3o05ucMkwKWoX7V5G1GjMn//3MFtYvJK+BLyfy8wISAlcAl4G9Kv6+A08A21L6+TgfwJkdeU2Q/4gwCnQLaUUUdS+lvAtiQ0U8n8CxHbqbuoFpFl4B1wMcc/Z3P2V87cC2ln0lgS4H8vEWHgE2o3UFWX4PA4oL57QE+NfQzDhzOub7JY5wX1wFdwFPyFfYQ6thQlBqwE+hGvV96HXiSc92y4zNO2U/IxRx9TAE3dCeeE6NbgA7KJjiYo49B1D0gF0Qv4FvG+qPov8FWhOgFXE1ZdxLYqz/lQkQvoBv4nbDeCHDAQL5FiV4AqNPQh6gH7Z9RZzrLtWc6O4wK8OE01HeMji/E94KiQgQ4RgQ4RgQ4RgQ4RgQ4RgQ4RoeAoYz2PHc6yyzDwOYC+R4p2H8WRfo6ViDP3PgwhckQsLFAzscd5GhsypQzDgbjYksosxj55Nfpxp9prHzcEqxMFtRrYSAhSrA2U1ON9K+PVlGC9WmyasA5ZHfkpPjT6Ua9XDWA+znGXEiIZoI4V5Q5OzJ6tlMlZiNBiq+ZIhKk+IbII0GKb5g0CVJ8SyRJkOJbZroEbcVv0dVRBbiPegWlHzihq9N/6M+c2KywACwAAAAASUVORK5CYII="}}
+                                   style={styles.floatingButtonStyle}
+                            />
+                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Exportar </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -933,6 +953,7 @@ export const GrabarWrapper = (props) => {
         {context => (<Grabar navigation={props.navigation}
                              commands={context.commands}
                              voces={context.voces}
+                             token={context.token}
                              newFile={context.filename ? context.user.username + "/" + context.filename : ""}
                             username={context.user.username}
         />)}

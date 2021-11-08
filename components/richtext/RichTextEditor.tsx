@@ -78,13 +78,14 @@ const Styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		borderWidth: 1,
-		// marginBottom: 10,
+		marginBottom: 1,
 		overflow: 'hidden',
 		borderColor: "#ADB5BD",
-		borderBottomWidth: 0,
-		borderTopLeftRadius: 3,
-		borderTopRightRadius: 3,
-		borderBottomLeftRadius: 0,
-		borderBottomRightRadius: 0,
+		borderTopWidth: 0,
+		borderBottomLeftRadius: 3,
+		borderBottomRightRadius: 3,
+		borderTopLeftRadius: 0,
+		borderTopRightRadius: 0,
+		// marginBottom: 3
 	},
 })

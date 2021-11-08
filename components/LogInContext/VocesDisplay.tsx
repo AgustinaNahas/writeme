@@ -14,8 +14,6 @@ import {
 
 export const VocesDisplay = ({ voces, remove }) => {
 
-    console.log(voces)
-
     return <View style={{width: "100%"}}>
         { voces.map((voz, index) =>
             <TouchableOpacity

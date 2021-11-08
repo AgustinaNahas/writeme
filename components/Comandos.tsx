@@ -47,7 +47,6 @@ export default class Comandos extends React.Component {
                                         comandos.splice(index, 1, comand);
                                         context.setCommands(comandos);
                                         this.setState({openModal: false})
-                                        console.log(this.state.openModal)
                                     }}
                                     deleteComand={(comand, index)=>{
                                         const comandos = context.commands;

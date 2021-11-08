@@ -4,16 +4,34 @@ import MyContext from "./Context";
 import {Text, TouchableOpacity, View} from "react-native";
 
 
-export const LogInAction = ({username, password, action}) => {
-    const login = () => {
-        const credenciales = {
-            "agus": "agus",
-            "enzo": "enzo",
-            "mica": "mica"
+export const LogInAction = ({username, password, action, error}) => {
+    const login = async (context) => {
+
+        const apiUrl = "https://writeme-api.herokuapp.com/login"
+        const options = {
+            method: 'POST',
+            body: JSON.stringify({ "username": username, "password": password }),
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        };
+
+        let response = await fetch(apiUrl, options);
+        let result = await response.json();
+
+        context.setToken(result.token)
+        context.setName(username)
+
+        console.log(result.token )
+        console.log(!result.error)
+
+        if (result.token && !result.error) {
+            action();
         }
-
-        return (credenciales[username] === password)
-
+        else {
+            error();
+        }
     }
 
     return <MyContext.Consumer>
@@ -31,10 +49,7 @@ export const LogInAction = ({username, password, action}) => {
                         marginLeft: "auto",
                         marginRight: "auto"
                     }} onPress={() => {
-                        if (login()) {
-                            action();
-                            context.setName(username)
-                        }
+                        login(context);
                     }}>
                     <Text style={{
                         fontFamily: "inter",
