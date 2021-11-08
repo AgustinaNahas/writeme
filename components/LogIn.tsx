@@ -12,6 +12,8 @@ const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
 import SnackBar from 'react-native-snackbar-component';
 
+import logo from "./../assets/images/logo.png";
+
 type Props = {};
 
 export default class LogIn extends React.Component<Props> {
@@ -28,7 +30,7 @@ export default class LogIn extends React.Component<Props> {
     render() {
         return (
                 <View style={styles.container}>
-                    <View style={{display: 'flex', width: '100%', paddingTop: 60}}>
+                    <View style={{display: 'flex', width: '100%', paddingTop: 30}}>
                         <View style={{
                             width: '100%',
                             display: "flex",
@@ -36,6 +38,8 @@ export default class LogIn extends React.Component<Props> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
+                            <Image source={logo} style={{ marginLeft: "auto", marginRight: "auto",
+                                width: 250, height: 125, marginBottom: 30 }} />
                             <Text
                                 style={{fontFamily: "cutive-mono-regular", width: "75%"}}
                             >

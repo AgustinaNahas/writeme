@@ -5,6 +5,7 @@ import {
     View,
 } from "react-native";
 import {SignUpAction} from "./LogInContext/SignUpAction";
+import logo from "../assets/images/logo.png";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -30,7 +31,7 @@ export default class SignUp extends React.Component<Props, State> {
 
         return (
                 <View style={styles.container}>
-                    <View style={{display: 'flex', width: '100%', paddingTop: 60}}>
+                    <View style={{display: 'flex', width: '100%', paddingTop: 30}}>
                         <View style={{
                             width: '100%',
                             display: "flex",
@@ -38,6 +39,8 @@ export default class SignUp extends React.Component<Props, State> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
+                            <Image source={logo} style={{ marginLeft: "auto", marginRight: "auto",
+                                width: 250, height: 125, marginBottom: 30 }} />
                             <Text
                                 style={{fontFamily: "cutive-mono-regular", width: "75%"}}
                             >

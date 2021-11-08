@@ -46,10 +46,10 @@ function App() {
       <LogInProvider>
           <NavigationContainer>
             <Stack.Navigator initialRouteName="LogIn">
-              <Stack.Screen name="LogIn" component={LogIn} />
-              <Stack.Screen name="SignUp" component={SignUp} />
+              <Stack.Screen name="Ingresar" component={LogIn} />
+              <Stack.Screen name="Registrarse" component={SignUp} />
               <Stack.Screen name="WriteMe" component={fonts ? GrabarWrapper : Loading} />
-              <Stack.Screen name="Lista grabaciones" component={ListaGrabaciones} />
+              <Stack.Screen name="Lista de grabaciones" component={ListaGrabaciones} />
               <Stack.Screen name="Comandos" component={Comandos} />
               <Stack.Screen name="Voces" component={Voces} />
             </Stack.Navigator>
