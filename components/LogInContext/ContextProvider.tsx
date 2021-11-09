@@ -2,26 +2,37 @@ import {Component} from "react";
 import React from "react";
 
 import MyContext from './Context';
+import {getCommands, storeCommands} from "../commands/storage";
 
-export class LogInProvider extends Component {
+export class ContextProvider extends Component {
     state = {
         user: {
             username: "Agus"
         },
         filename: "",
         token: undefined,
-        commands: [
-            {key: "negrita", value: "b", type: "complex"},
-            {key: "cursiva", value: "i", type: "complex"},
-            {key: " punto", value: ". ", type: "simple"},
-            {key: " coma", value: ", ", type: "simple"},
-        ],
+        commands: [],
         voces: [
             {key: "Mica"},
             {key: "Enzo"},
             {key: "Agus"},
         ]
     };
+
+    async componentDidMount() {
+        const commands = await getCommands();
+        if (!commands){
+            const initialCommands = [
+                {key: "negrita", value: "b", type: "complex", active: true},
+                {key: "cursiva", value: "i", type: "complex", active: true},
+                {key: " punto ", value: ". ", type: "simple", active: true},
+                {key: " coma ", value: ", ", type: "simple", active: true},
+            ]
+            storeCommands(initialCommands)
+        }
+
+        this.state.commands = commands;
+    }
 
     render() {
         return (

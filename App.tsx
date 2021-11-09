@@ -9,7 +9,7 @@ import {Image, View} from "react-native";
 
 import logo from "./assets/images/logo-minimalista.png";
 import LogIn from "./components/LogIn";
-import {LogInProvider} from "./components/LogInContext/LogInProvider";
+import {ContextProvider} from "./components/LogInContext/ContextProvider";
 import Comandos from "./components/Comandos";
 import SignUp from "./components/SignUp";
 import Voces from "./components/Voces";
@@ -43,9 +43,9 @@ function App() {
     }, []);
 
   return (
-      <LogInProvider>
+      <ContextProvider>
           <NavigationContainer>
-            <Stack.Navigator initialRouteName="LogIn">
+            <Stack.Navigator initialRouteName="Ingresar">
               <Stack.Screen name="Ingresar" component={LogIn} />
               <Stack.Screen name="Registrarse" component={SignUp} />
               <Stack.Screen name="WriteMe" component={fonts ? GrabarWrapper : Loading} />
@@ -54,7 +54,7 @@ function App() {
               <Stack.Screen name="Voces" component={Voces} />
             </Stack.Navigator>
           </NavigationContainer>
-      </LogInProvider>
+      </ContextProvider>
   );
 }
 

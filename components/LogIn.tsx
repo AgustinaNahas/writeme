@@ -5,7 +5,7 @@ import {
     View,
 } from "react-native";
 import * as Icons from "./Icons";
-import {LogInProvider} from "./LogInContext/LogInProvider";
+import {ContextProvider} from "./LogInContext/ContextProvider";
 import {LogInAction} from "./LogInContext/LogInAction";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
@@ -128,7 +128,7 @@ export default class LogIn extends React.Component<Props> {
                                         marginTop: 10,
                                         marginLeft: "auto",
                                         marginRight: "auto"
-                                    }} onPress={() => { this.props.navigation.navigate('SignUp') }}>
+                                    }} onPress={() => { this.props.navigation.navigate('Registrarse') }}>
                                     <Text style={{
                                         fontFamily: "inter",
                                         fontSize: 12,
