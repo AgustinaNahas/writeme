@@ -1,7 +1,7 @@
 import React from 'react'
 import { SafeAreaView, ScrollView } from 'react-native'
-import { RichTextEditor, RichTextEditorRef } from './richtext/RichTextEditor'
-import { RichTextEditorToolbar } from './richtext/RichTextEditorToolbar'
+import { RichTextEditor, RichTextEditorRef } from './RichTextEditor'
+import { RichTextEditorToolbar } from './RichTextEditorToolbar'
 
 export default function Editor ({texto, setTexto}) {
 	var richTextEditorRef = React.createRef<RichTextEditorRef>()

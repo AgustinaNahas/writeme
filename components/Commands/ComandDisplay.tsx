@@ -1,6 +1,6 @@
 import { useState } from "react";
 import React from "react";
-import { Alert, Image, Modal, View, StyleSheet, Text, TextInput, TouchableOpacity, Switch } from "react-native";
+import { Alert, Image, Modal, View, StyleSheet, Text, TextInput, TouchableOpacity, Switch, ScrollView } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 
 export const ComandDisplay = ({comandos, saveComand, deleteComand, openModal, close }) => {
@@ -39,8 +39,10 @@ export const ComandDisplay = ({comandos, saveComand, deleteComand, openModal, cl
                         <Picker.Item label="Punto" value=". " />
                         <Picker.Item label="Coma" value=", " />
                         <Picker.Item label="Guion" value="-" />
-                        <Picker.Item label="Pregunta" value="?" />
-                        <Picker.Item label="Exclamación" value="!" />
+                        <Picker.Item label="Inicio pregunta" value="¿" />
+                        <Picker.Item label="Fin pregunta" value="?" />
+                        <Picker.Item label="Inicio exclamación" value="¡" />
+                        <Picker.Item label="Fin exclamación" value="!" />
                     </Picker>
                     <View style={{ display: "flex", flexDirection: "row", alignItems: "center", marginBottom: 40 }}>
                         <Text style={{ textAlign: "left", marginRight: 15 }}> Activo </Text>
@@ -84,6 +86,7 @@ export const ComandDisplay = ({comandos, saveComand, deleteComand, openModal, cl
             </View>
         </Modal>
 
+        <ScrollView style={{ width: "100%", marginBottom: 90 }}>
         {comandos.map((comando, index) =>
             <TouchableOpacity
                 style={{ width: "100%", padding: 20, display: "flex", flexDirection: "row", backgroundColor: "#FCFCFC", borderBottomColor: "#CED4DA", borderBottomWidth: 1 }}
@@ -94,6 +97,7 @@ export const ComandDisplay = ({comandos, saveComand, deleteComand, openModal, cl
                 />
             </TouchableOpacity>
         )}
+        </ScrollView>
 
 
     </View>

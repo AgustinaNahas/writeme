@@ -1,11 +1,7 @@
 import React from "react";
-import {
-    Dimensions, Image,
-    StyleSheet, Text, TextInput, TouchableOpacity,
-    View,
-} from "react-native";
-import {SignUpAction} from "./LogInContext/SignUpAction";
-import logo from "../assets/images/logo.png";
+import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {SignUpAction} from "./SignUpAction";
+import logo from "../../assets/images/logo.png";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";

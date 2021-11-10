@@ -5,13 +5,13 @@ import {
     View,
 } from "react-native";
 import * as Icons from "./Icons";
-import MyContext from "./LogInContext/Context";
-import {FilesDisplay} from "./LogInContext/FilesDisplay";
+import MyContext from "./../Context/Context";
+import {FilesDisplay} from "./../Grabaciones/FilesDisplay";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
-import {ComandDisplay} from "./LogInContext/ComandDisplay";
-import {storeCommands} from "./commands/storage";
+import {ComandDisplay} from "./../Commands/ComandDisplay";
+import {storeCommands} from "./../Commands/storage";
 
 
 type Props = {};

@@ -2,7 +2,7 @@ import {Component} from "react";
 import React from "react";
 
 import MyContext from './Context';
-import {getCommands, storeCommands} from "../commands/storage";
+import {getCommands, storeCommands} from "../Commands/storage";
 
 export class ContextProvider extends Component {
     state = {
@@ -20,13 +20,20 @@ export class ContextProvider extends Component {
     };
 
     async componentDidMount() {
+        // await storeCommands(null)
         const commands = await getCommands();
         if (!commands){
             const initialCommands = [
                 {key: "negrita", value: "b", type: "complex", active: true},
                 {key: "cursiva", value: "i", type: "complex", active: true},
+                {key: "subrayado", value: "u", type: "complex", active: true},
+                {key: " guión ", value: "-", type: "simple", active: true},
                 {key: " punto ", value: ". ", type: "simple", active: true},
                 {key: " coma ", value: ", ", type: "simple", active: true},
+                {key: "inicio pregunta", value: " ¿", type: "simple", active: true},
+                {key: "fin pregunta", value: "?", type: "simple", active: true},
+                {key: "inicio exclamación", value: " ¡", type: "simple", active: true},
+                {key: "fin exclamación", value: "!", type: "simple", active: true},
             ]
             storeCommands(initialCommands)
         }

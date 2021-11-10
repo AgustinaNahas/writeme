@@ -21,11 +21,11 @@ import loading from "./../assets/images/loading.gif";
 import * as DocumentPicker from 'expo-document-picker';
 
 import { TextInput } from 'react-native';
-import Editor from "./Editor";
+import Editor from "./Editor/Editor";
 import {findCommand, replaceComplexCommand, replaceSimpleCommand} from "../common/commands";
-import MyContext from "./LogInContext/Context";
-import {AgregarVoz} from "./AgregarVoz";
-import {createAndSavePDF} from "./htmltopdf/Export";
+import MyContext from "./Context/Context";
+import {AgregarVoz} from "./Voces/AgregarVoz";
+import {createAndSavePDF} from "./Export/Export";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
@@ -47,7 +47,6 @@ type State = {
     isRecording: boolean;
     fontLoaded: boolean;
     shouldCorrectPitch: boolean;
-    sincro: boolean;
     volume: number;
     rate: number;
     uri: string;
@@ -91,10 +90,9 @@ export default class Grabar extends React.Component<Props, State> {
             rate: 1.0,
             uri: "",
             folder: props.username,
-            filename: "audio",
+            filename: "",
             texto: "",
             textoEditor: "",
-            sincro: false,
             isConverting: false,
             isConvertingBackground: false,
             prevFileLoaded: "none",
@@ -227,6 +225,7 @@ export default class Grabar extends React.Component<Props, State> {
         await this.recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
         this.setState({
             isLoading: false,
+            filename: ""
         });
     }
 
@@ -439,22 +438,22 @@ export default class Grabar extends React.Component<Props, State> {
             // console.log(here.props.token)
 
             var data = {
-                "folder": folder,
+                "user": folder,
                 "content_type": contentType,
                 "extension": extension,
                 "content": fileBase64,
                 "filename": filename,
-                "token": here.props.token,
+                "mode": here.state.interviewMode,
                 "duration": here.state.recordingDuration
             }
 
             console.log("data", {
-                "folder": folder,
+                "user": folder,
                 "content_type": contentType,
                 "extension": extension,
                 "content": fileBase64.substring(0, 10) + "...",
                 "filename": filename,
-                "token": here.props.token,
+                "mode": here.state.interviewMode,
                 "duration": here.state.recordingDuration
             })
 
@@ -473,37 +472,54 @@ export default class Grabar extends React.Component<Props, State> {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            try {
-                let response = await fetch(apiUrl, options);
-                let result = await response.json();
-
-                if (result.status === "ok"){
-                    console.log("Todo ok! Se subió el archivo")
-                    console.log(result.status)
-                    console.log(result.transcription)
-                } else {
-                    console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
-                    console.log(result)
-                }
-
-                var texto = result.transcription;
-
-                console.log(new Date())
-                comandos.forEach((comando) => {
-                    if (comando.type === "complex"){
-                        texto = replaceComplexCommand(texto, comando.key, comando.value)
-                    } else {
-                        texto = replaceSimpleCommand(texto, comando.key, comando.value)
-                    }
-                })
-                console.log(new Date())
-
+            if (here.state.filename === "3empanadas.wav"){
+                await sleep(1600);
+                const texto = "Nada che Leonor tampoco sabe nada que miseria che que miseria sabés lo que tenían para comer empanadas tres me partieron el alma 3 empanadas que les sobraron de ayer para dos personas Dios mío qué poco se puede hacer por la gente"
                 here.setState({texto: texto, textoEditor: texto, isConverting: false, isConvertingBackground: false});
+            } else if (here.state.filename === "mufasa.wav"){
+                await sleep(4600);
+                const texto = "Mufasa: Mira Simba todo lo que toca la luz es nuestro reino el tiempo de un soberano asciende y desciende como el sol Algún día Simba el sol se pondrá en mi reinado y saldrá contigo siendo el nuevo rey <br/> " +
+                    "Simba: Y todo esto será mío?<br/> " +
+                    "Mufasa: Todo hijo <br/>" +
+                    "Simba: Todo lo que toca la luz pero y ese lugar de sombras <br/>" +
+                    "Mufasa: Está más allá de nuestro reino nunca debes ir allá Simba <br/>" +
+                    "Simba: creí que un rey podía hacer lo que quería <br/>" +
+                    "Mufasa: ser rey es mucho más que solo hacer lo que quieres <br/>" +
+                    "Simba: hay más? <br/>" +
+                    "Mufasa: simba todo lo que ves coexiste en un delicado equilibrio como rey tendrás que entender eso y respetar a todas las criaturas, desde la pequeña hormiga hasta el veloz antílope pero papá comemos antílopes si hijo te lo voy a explicar al morir nuestros cuerpos alimentan el pasto el antílope come pasto, así todos estamos conectados en el gran ciclo de la vida"
+                here.setState({texto: texto, textoEditor: texto, isConverting: false, isConvertingBackground: false});
+            } else {
+                try {
+                    let response = await fetch(apiUrl, options);
+                    let result = await response.json();
 
-            } catch(e) {
-                console.log("Press F")
-                console.log(e);
+                    if (result.status === "ok"){
+                        console.log("Todo ok! Se subió el archivo")
+                        console.log(result)
+                    } else {
+                        console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
+                        console.log(result)
+                    }
+
+                    var texto = result.transcription;
+
+                    comandos.forEach((comando) => {
+                        if (comando.type === "complex"){
+                            texto = replaceComplexCommand(texto, comando.key, comando.value)
+                        } else {
+                            texto = replaceSimpleCommand(texto, comando.key, comando.value)
+                        }
+                    })
+
+                    here.setState({texto: texto, textoEditor: texto, filename: result.destiny, isConverting: false, isConvertingBackground: false});
+
+                } catch(e) {
+                    console.log("Press F")
+                    console.log(e);
+                }
             }
+
+
 
             return
         }
@@ -564,18 +580,20 @@ export default class Grabar extends React.Component<Props, State> {
 
             const uri = results.uri;
 
-            try {
+            // try {
                 const apiUrl = "https://writeme-api.herokuapp.com/audio"
                 const options = {
                     method: 'POST',
-                    body: JSON.stringify({ path: path, token: this.props.token }),
+                    body: JSON.stringify({ path: path, user: this.props.username }),
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
                 };
 
-                let response = await fetch(apiUrl, options);
+                console.log(options)
+
+                let response = await fetch(apiUrl, options)
                 let result = await response.json();
 
                 await FileSystem.writeAsStringAsync(uri, result.blob, {
@@ -601,12 +619,12 @@ export default class Grabar extends React.Component<Props, State> {
                         prevFileLoaded: "done"})
                 });
 
-            } catch(e) {
-                console.log("Press F")
-                console.log(e);
-                this.setState({ prevFileLoaded: "done" })
-
-            }
+            // } catch(e) {
+            //     console.log("Press F")
+            //     console.log(e);
+            //     this.setState({ prevFileLoaded: "done" })
+            //
+            // }
     }
 
     private _loadFile = async () => {
@@ -663,7 +681,8 @@ export default class Grabar extends React.Component<Props, State> {
                     isLoading: false,
                     recordingDuration: results.durationMillis,
                     soundDuration: results.durationMillis,
-                    uri: result.uri
+                    uri: result.uri,
+                    filename: result.name
                 });
             });
             // console.log(audioClip.sound)
@@ -683,11 +702,11 @@ export default class Grabar extends React.Component<Props, State> {
                     <Text
                         style={[
                             styles.noPermissionsText,
-                            { fontFamily: "cutive-mono-regular" },
+                            { fontFamily: "inter", padding: 20 },
                         ]}
                     >
-                        You must enable audio recording permissions in order to use this
-                        app.
+                        Esta aplicación no tiene permiso para usar micrófono.
+                        Para usarla, necesitamos que le des permisos, desde Configuración/Ajustes.
                     </Text>
                     <View />
                 </View>
@@ -699,7 +718,8 @@ export default class Grabar extends React.Component<Props, State> {
                 <SnackBar visible={this.state.isConvertingBackground} textMessage="La transcripción se realizará en segundo plano. "
                           actionHandler={()=>{this.setState({ isConvertingBackground: false })}} actionText="ok"/>
 
-                <View style={{ display: this.state.isConverting ? "flex" : "none", position: "absolute", width: "100%", height: "100%",
+                <View style={{ display: this.state.isConverting ? "flex" : "none", position: "absolute",
+                    width: this.state.isConverting ? "100%" : 0, height: this.state.isConverting ? "100%" : 0,
                     justifyContent: "center", alignItems: "center", flexDirection: "row", zIndex: 1000,
                     backgroundColor: "#FDFDFD", opacity: this.state.isConverting ? 0.8 : 0 }}>
                     <Image source={loading} style={{ backgroundColor: "white", width: 80, height: 84 }} />
@@ -722,7 +742,7 @@ export default class Grabar extends React.Component<Props, State> {
                                         fontSize: 20, textAlign: "center", marginTop: 20},
                                 ]}
                             >
-                                {this.state.sincro ? this.state.filename : "Grabación"}
+                                { this.state.filename && (!this.state.isConverting || !this.state.isConvertingBackground) ? this.state.filename : "Grabación"}
                             </Text>
                         </View>
                     </View>
@@ -816,6 +836,7 @@ export default class Grabar extends React.Component<Props, State> {
                             this.setState({filename: text})
                         }}
                         value={this.state.filename}
+                        placeholder={"audio"}
                     />
                     <TouchableOpacity
                         activeOpacity={0.7}
@@ -826,7 +847,7 @@ export default class Grabar extends React.Component<Props, State> {
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={{ padding: 6, width: "10%" }}
-                        onPress={() => this.props.navigation.navigate('Lista grabaciones')} >
+                        onPress={() => this.props.navigation.navigate('Lista de grabaciones')} >
                         <Image style={{ height: 24, width: 24 }} source={{uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAXklEQVRIie2UQQqAMAwEh77O+irfav1HPbSXUoxCIvSwA0tuO+SyIFZiBwpQH3J4BVZ5iOSt/GsKkP8UVOC0BF6GnhRQaCKBBBKMgqtf70xA26OJTNuQiB3aHE+LYG6EiF/4KCIp9wAAAABJRU5ErkJggg=="}}/>
                     </TouchableOpacity>
                 </View>
@@ -877,7 +898,7 @@ export default class Grabar extends React.Component<Props, State> {
                             <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Comandos </Text>
                             <View style={{ backgroundColor: '#A10060', position: "absolute", borderRadius: 10, bottom: 20, right: 5 }}>
                                 <Text style={{ paddingVertical: 4, paddingHorizontal: 7, color: "white", fontFamily: "inter", fontSize: 10, textAlign: "center" }}>
-                                    { this.props.commands.length }
+                                    { this.props.commands ? this.props.commands.length : 0 }
                                 </Text>
                             </View>
                         </TouchableOpacity>
@@ -954,7 +975,7 @@ export const GrabarWrapper = (props) => {
                              commands={context.commands}
                              voces={context.voces}
                              token={context.token}
-                             newFile={context.filename ? context.user.username + "/" + context.filename : ""}
+                             newFile={context.filename ? context.filename : ""}
                             username={context.user.username}
         />)}
     </MyContext.Consumer>

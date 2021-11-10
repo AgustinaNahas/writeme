@@ -1,6 +1,6 @@
-import {Component, Fragment, Props, useEffect, useState} from "react";
+import { Component, Fragment, Props, useEffect, useState } from "react";
 import React from "react";
-import {Text, TouchableHighlight, TouchableOpacity, View} from "react-native";
+import { Text, TouchableHighlight, TouchableOpacity, View, ScrollView } from "react-native";
 
 export class FilesDisplay extends React.Component<Props, State> {
 
@@ -17,33 +17,33 @@ export class FilesDisplay extends React.Component<Props, State> {
 
         let options = {
             method: 'POST',
-            body: {
-                token: this.props.token
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             },
         };
 
         console.log(apiUrl)
         console.log(options)
 
-        try {
-            let response = await fetch(apiUrl, options);
-            let result = await response.json();
-
-            if (result.length > 0) {
-                this.setState({files: result})
+        fetch(apiUrl, options).then((response) => {
+            if (response.ok) return response.json()
+            else throw new Error('Señores hagan algo, salió todo mal');
+        }).then((json) => {
+            console.log(json)
+            if (json.length > 0) {
+                this.setState({files: json})
             }
 
-            console.log(result)
-        } catch(e) {
-            console.log("Press F")
-            console.log(e);
-        }
+        }).catch((error) => {
+            console.log(error)
+        });
     }
 
 
     render() {
 
-        return <View style={{width: "100%"}}>
+        return <ScrollView style={{ width: "100%", marginBottom: 90 }}>
             {this.state.files.map((file, index) => <TouchableHighlight
                 key={"file_" + index}
                     style={{
@@ -63,7 +63,7 @@ export class FilesDisplay extends React.Component<Props, State> {
                     </Text>
                 </TouchableHighlight>
             )}
-        </View>
+        </ScrollView>
     }
 
 }

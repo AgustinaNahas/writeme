@@ -24,6 +24,10 @@ export const RichEditorHtml = `<!DOCTYPE html>
             width: 90%;
             border-color: #ADB5BD;
         }
+        
+        #textEditor {
+            font-size: 24px;
+        }
     </style>
 </head>
 

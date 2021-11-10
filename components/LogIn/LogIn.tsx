@@ -5,14 +5,14 @@ import {
     View,
 } from "react-native";
 import * as Icons from "./Icons";
-import {ContextProvider} from "./LogInContext/ContextProvider";
-import {LogInAction} from "./LogInContext/LogInAction";
+import {ContextProvider} from "./Context/ContextProvider";
+import {LogInAction} from "./LogInAction";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
 import SnackBar from 'react-native-snackbar-component';
 
-import logo from "./../assets/images/logo.png";
+import logo from "./../../assets/images/logo.png";
 
 type Props = {};
 
@@ -21,8 +21,8 @@ export default class LogIn extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            username: "enzo",
-            password: "enzo",
+            username: "agus",
+            password: "agus",
             error: false,
         }
     }

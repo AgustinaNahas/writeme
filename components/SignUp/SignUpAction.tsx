@@ -1,6 +1,6 @@
 import {Component, Fragment} from "react";
 import React from "react";
-import MyContext from "./Context";
+import MyContext from "./../Context/Context";
 import {Text, TouchableOpacity, View} from "react-native";
 
 

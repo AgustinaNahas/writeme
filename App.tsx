@@ -2,17 +2,17 @@ import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Grabar, {GrabarWrapper} from "./components/Grabar";
-import ListaGrabaciones from "./components/ListaGrabaciones";
+import ListaGrabaciones from "./components/Grabaciones/ListaGrabaciones";
 import * as Font from "expo-font";
 import {useEffect, useState} from "react";
 import {Image, View} from "react-native";
 
 import logo from "./assets/images/logo-minimalista.png";
-import LogIn from "./components/LogIn";
-import {ContextProvider} from "./components/LogInContext/ContextProvider";
-import Comandos from "./components/Comandos";
-import SignUp from "./components/SignUp";
-import Voces from "./components/Voces";
+import LogIn from "./components/LogIn/LogIn";
+import {ContextProvider} from "./components/Context/ContextProvider";
+import Comandos from "./components/Commands/Comandos";
+import SignUp from "./components/SignUp/SignUp";
+import Voces from "./components/Voces/Voces";
 
 const Stack = createStackNavigator();
 
@@ -35,7 +35,6 @@ function App() {
             await Font.loadAsync({
                 "open-sans": require("./assets/fonts/OpenSans-Regular.ttf"),
             });
-            await sleep(1000);
 
             setFonts(true);
 

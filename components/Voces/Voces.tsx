@@ -5,18 +5,18 @@ import {
     View,
 } from "react-native";
 import * as Icons from "./Icons";
-import MyContext from "./LogInContext/Context";
-import {FilesDisplay} from "./LogInContext/FilesDisplay";
+import MyContext from "./../Context/Context";
+import {FilesDisplay} from "./../Grabaciones/FilesDisplay";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const BACKGROUND_COLOR = "#FFFFFF";
-import {ComandDisplay} from "./LogInContext/ComandDisplay";
-import {VocesDisplay} from "./LogInContext/VocesDisplay";
-
+import {ComandDisplay} from "./../Commands/ComandDisplay";
+import {VocesDisplay} from "./../Voces/VocesDisplay";
 
 type Props = {};
 
 export default class Voces extends React.Component {
+
     render() {
         return (
             <MyContext.Consumer>
@@ -24,7 +24,7 @@ export default class Voces extends React.Component {
                     <View style={styles.container}>
                         <View style={{ width: "100%" }}>
                             <View style={{ display: "flex" }}>
-                                <VocesDisplay voces={context.voces} remove={(a) => {console.log(a)}}/>
+                                <VocesDisplay user={context.username} />
                             </View>
                         </View>
                     </View>
