@@ -4,8 +4,6 @@ import {
     StyleSheet, Text, TextInput, TouchableHighlight, TouchableOpacity,
     View,
 } from "react-native";
-import * as Icons from "./Icons";
-import {ContextProvider} from "./Context/ContextProvider";
 import {LogInAction} from "./LogInAction";
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
@@ -13,6 +11,7 @@ const BACKGROUND_COLOR = "#FFFFFF";
 import SnackBar from 'react-native-snackbar-component';
 
 import logo from "./../../assets/images/logo.png";
+import loading from "../../assets/images/loading.gif";
 
 type Props = {};
 
@@ -24,12 +23,20 @@ export default class LogIn extends React.Component<Props> {
             username: "agus",
             password: "agus",
             error: false,
+            loading: false,
         }
     }
 
     render() {
         return (
                 <View style={styles.container}>
+                    <View style={{ display: this.state.loading ? "flex" : "none", position: "absolute",
+                        width: this.state.loading ? "100%" : 0, height: this.state.loading ? "100%" : 0,
+                        justifyContent: "center", alignItems: "center", flexDirection: "row", zIndex: 1000,
+                        backgroundColor: "#FDFDFD", opacity: this.state.loading ? 0.8 : 0 }}>
+                        <Image source={loading} style={{ backgroundColor: "white", width: 80, height: 84 }} />
+                    </View>
+
                     <View style={{display: 'flex', width: '100%', paddingTop: 30}}>
                         <View style={{
                             width: '100%',
@@ -103,11 +110,15 @@ export default class LogIn extends React.Component<Props> {
                             paddingBottom: 0,
                             alignItems: "center"
                         }}>
-                                <LogInAction {...this.state} action={() => this.props.navigation.navigate('WriteMe')}
-                                             error={() => {
-                                                 console.log("Error!!!")
-                                                 this.setState({error: true})
-                                             }}/>
+                                <LogInAction {...this.state} preAction={() => {this.setState({loading: true})}} action={() => {
+                                    this.props.navigation.navigate('WriteMe')
+                                    this.setState({error: false, loading: false})
+                                }}
+                                 error={() => {
+                                     console.log("Error!!!")
+                                     this.setState({error: true, loading: false})
+                                     setTimeout(() => {this.setState({error: false, loading: false})}, 5000);
+                                 }}/>
                         </View>
                         <View style={{
                             width: '100%',
@@ -139,6 +150,9 @@ export default class LogIn extends React.Component<Props> {
                                 </TouchableOpacity>
                             </View>
                         </View>
+                        <SnackBar position="bottom" bottom={-70} visible={this.state.error} textMessage="Usuario y/o contraseña incorrectos. "
+                                  autoHidingTime={3000} onDismiss={()=>{this.setState({ error: false })}} actionText="ok"/>
+
                     </View>
                 </View>
         );

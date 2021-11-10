@@ -58,6 +58,9 @@ type State = {
     isConvertingBackground: boolean;
     prevFileLoaded: string;
     interviewMode: boolean;
+    grabacionError: boolean;
+    exportarError: boolean;
+    transcriptionError: boolean;
 };
 
 export default class Grabar extends React.Component<Props, State> {
@@ -96,7 +99,10 @@ export default class Grabar extends React.Component<Props, State> {
             isConverting: false,
             isConvertingBackground: false,
             prevFileLoaded: "none",
-            interviewMode: false
+            interviewMode: false,
+            exportarError: false,
+            transcriptionError: false,
+            grabacionError: false
         };
         this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -225,7 +231,8 @@ export default class Grabar extends React.Component<Props, State> {
         await this.recording.startAsync(); // Will call this._updateScreenForRecordingStatus to update the screen.
         this.setState({
             isLoading: false,
-            filename: ""
+            filename: "",
+            texto: ""
         });
     }
 
@@ -403,6 +410,8 @@ export default class Grabar extends React.Component<Props, State> {
 
         if (!this.recording) {
             console.log("ERROR: No recording")
+            this.setState({ grabacionError: true })
+            setTimeout(() => this.setState({ grabacionError: false }), 5000)
         } else {
             try {
                 await this.recording.stopAndUnloadAsync();
@@ -410,13 +419,14 @@ export default class Grabar extends React.Component<Props, State> {
                 console.log("ERROR: Can't unload async")
                 console.log(error);
             }
+
+            if (this.state != null) {
+                let uri = this.state.uri;
+                await uploadAudioAsync(uri);
+            }
+
         }
 
-        if (this.state != null) {
-            let uri = this.state.uri;
-            await uploadAudioAsync(uri);
-
-        }
 
         async function uploadAudioAsync(uri: string) {
 
@@ -424,6 +434,8 @@ export default class Grabar extends React.Component<Props, State> {
                 here.setState({isConverting: true});
             } else {
                 here.setState({isConvertingBackground: true});
+                setTimeout(() => {here.setState({isConvertingBackground: false})}, 5000);
+
             }
 
             let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
@@ -433,9 +445,6 @@ export default class Grabar extends React.Component<Props, State> {
             let apiUrl = "http://writeme-api.herokuapp.com/transcript";
 
             let contentType = here.getMimeType(extension);
-
-            // console.log("token")
-            // console.log(here.props.token)
 
             var data = {
                 "user": folder,
@@ -516,6 +525,10 @@ export default class Grabar extends React.Component<Props, State> {
                 } catch(e) {
                     console.log("Press F")
                     console.log(e);
+
+                    here.setState({ transcriptionError: true })
+                    setTimeout(() => here.setState({ transcriptionError: false }), 5000)
+
                 }
             }
 
@@ -560,7 +573,6 @@ export default class Grabar extends React.Component<Props, State> {
 
             await sleep(1000)
 
-
             await recording.stopAndUnloadAsync();
 
             const { sound, status } = await recording.createNewLoadedSoundAsync(
@@ -580,7 +592,7 @@ export default class Grabar extends React.Component<Props, State> {
 
             const uri = results.uri;
 
-            // try {
+            try {
                 const apiUrl = "https://writeme-api.herokuapp.com/audio"
                 const options = {
                     method: 'POST',
@@ -613,18 +625,19 @@ export default class Grabar extends React.Component<Props, State> {
                 await this.sound.getStatusAsync().then(function(results) {
                     here.setState({
                         isLoading: false,
+                        texto: result.transcription,
                         recordingDuration: results.durationMillis,
                         soundDuration: results.durationMillis,
                         uri: result.uri,
                         prevFileLoaded: "done"})
                 });
 
-            // } catch(e) {
-            //     console.log("Press F")
-            //     console.log(e);
-            //     this.setState({ prevFileLoaded: "done" })
-            //
-            // }
+            } catch(e) {
+                console.log("Press F")
+                console.log(e);
+                this.setState({ prevFileLoaded: "done" })
+
+            }
     }
 
     private _loadFile = async () => {
@@ -717,6 +730,15 @@ export default class Grabar extends React.Component<Props, State> {
             <View style={styles.container}>
                 <SnackBar visible={this.state.isConvertingBackground} textMessage="La transcripción se realizará en segundo plano. "
                           actionHandler={()=>{this.setState({ isConvertingBackground: false })}} actionText="ok"/>
+
+                <SnackBar visible={this.state.transcriptionError} textMessage="Hubo un error en la transcripción."
+                          actionHandler={()=>{this.setState({ transcriptionError: false })}} actionText="ok"/>
+
+                <SnackBar visible={this.state.grabacionError} textMessage="No hay grabación para transcribir. "
+                          actionHandler={()=>{this.setState({ grabacionError: false })}} actionText="ok"/>
+
+                <SnackBar visible={this.state.exportarError} textMessage="No hay texto para exportar. "
+                          actionHandler={()=>{this.setState({ exportarError: false })}} actionText="ok"/>
 
                 <View style={{ display: this.state.isConverting ? "flex" : "none", position: "absolute",
                     width: this.state.isConverting ? "100%" : 0, height: this.state.isConverting ? "100%" : 0,
@@ -877,8 +899,14 @@ export default class Grabar extends React.Component<Props, State> {
                         </TouchableOpacity>
                         <TouchableOpacity
                             activeOpacity={0.7}
-                            onPress={() => {
-                                createAndSavePDF(this.state.textoEditor)
+                            onPress={async () => {
+                                this.setState({ isConverting: true })
+                                if (!(await createAndSavePDF(this.state.textoEditor))){
+                                    this.setState({ exportarError: true, isConverting: false })
+                                    setTimeout(() => this.setState({ exportarError: false }), 5000)
+                                } else {
+                                    this.setState({ isConverting: false })
+                                }
                             }}
                             disabled={this.state.isConverting}
                             style={styles.bottomButton}>
@@ -1098,8 +1126,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         alignSelf: "stretch",
         paddingRight: 16,
-        minHeight: Icons.THUMB_1.height * 2.0,
-        maxHeight: Icons.THUMB_1.height * 2.0,
+        minHeight: 19 * 2.0,
+        maxHeight: 19 * 2.0,
     },
     playbackSlider: {
         //barrita de reproduccion
@@ -1130,7 +1158,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     buttonsContainerTopRow: {
-        maxHeight: Icons.MUTED_BUTTON.height,
+        maxHeight: 58,
         alignSelf: "stretch",
         paddingRight: 20,
     },
@@ -1139,11 +1167,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        minWidth: ((Icons.PLAY_BUTTON.width + Icons.STOP_BUTTON.width) * 3.0) / 2.0,
-        maxWidth: ((Icons.PLAY_BUTTON.width + Icons.STOP_BUTTON.width) * 3.0) / 2.0,
+        minWidth: ((34 + 22) * 3.0) / 2.0,
+        maxWidth: ((34 + 22) * 3.0) / 2.0,
     },
     buttonsContainerBottomRow: {
-        maxHeight: Icons.THUMB_1.height,
+        maxHeight: 19,
         alignSelf: "stretch",
         paddingRight: 20,
         paddingLeft: 20,

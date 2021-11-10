@@ -4,8 +4,10 @@ import MyContext from "./../Context/Context";
 import {Text, TouchableOpacity, View} from "react-native";
 
 
-export const LogInAction = ({username, password, action, error}) => {
+export const LogInAction = ({username, password, preAction, action, error}) => {
     const login = async (context) => {
+
+        preAction();
 
         const apiUrl = "https://writeme-api.herokuapp.com/login"
         const options = {
