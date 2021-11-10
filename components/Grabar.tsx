@@ -98,29 +98,31 @@ export default class Grabar extends React.Component<Props, State> {
             prevFileLoaded: "none",
             interviewMode: false
         };
-        this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
+        // Lo pongo en high arbitrariamente
+        this.recordingSettings = Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY;
 
+        // Lo comento porque por default anda bien
         // UNCOMMENT THIS TO TEST maxFileSize:
-        this.recordingSettings = {
-            ...this.recordingSettings,
-            android: {
-                ...this.recordingSettings.android,
-                extension: '.wav',
-                sampleRate: 44100,
-                numberOfChannels: 2,
-                bitRate: 128000,
-            },
-            ios: {
-                extension: '.wav',
-                audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
-                sampleRate: 44100,
-                numberOfChannels: 2,
-                bitRate: 128000,
-                linearPCMBitDepth: 16,
-                linearPCMIsBigEndian: false,
-                linearPCMIsFloat: false,
-            },
-        };
+        // this.recordingSettings = {
+        //     ...this.recordingSettings,
+        //     android: {
+        //         ...this.recordingSettings.android,
+        //         extension: AUDIO.RECO,
+        //         // sampleRate: 44100,
+        //         // numberOfChannels: 2,
+        //         // bitRate: 128000,
+        //     },
+        //     ios: {
+        //         extension: '.wav',
+        //         audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
+        //         sampleRate: 44100,
+        //         numberOfChannels: 2,
+        //         bitRate: 128000,
+        //         linearPCMBitDepth: 16,
+        //         linearPCMIsBigEndian: false,
+        //         linearPCMIsFloat: false,
+        //     },
+        // };
     }
 
     componentDidMount() {
@@ -386,6 +388,7 @@ export default class Grabar extends React.Component<Props, State> {
             "midi": "audio/midi",
             "aac": "audio/aac",
             "ogg": "audio/ogg",
+            "3gp": "audio/3gp",
         }
 
         if (arrayMimeTypes[extension] !== undefined) return arrayMimeTypes[extension];
@@ -433,7 +436,7 @@ export default class Grabar extends React.Component<Props, State> {
             let apiUrl = "http://writeme-api.herokuapp.com/transcript";
 
             let contentType = here.getMimeType(extension);
-
+                
             // console.log("token")
             // console.log(here.props.token)
 
@@ -492,7 +495,7 @@ export default class Grabar extends React.Component<Props, State> {
                 try {
                     let response = await fetch(apiUrl, options);
                     let result = await response.json();
-
+                    
                     if (result.status === "ok"){
                         console.log("Todo ok! Se subió el archivo")
                         console.log(result)
