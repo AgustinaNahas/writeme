@@ -18,15 +18,13 @@ export const RichEditorHtml = `<!DOCTYPE html>
             overflow-x: hidden;
             outline: 0;
             padding: 1em;
-            padding-left: 1em;
-            padding-right: 1em;
             min-height: 100%;
             width: 90%;
-            border-color: #ADB5BD;
+            /*background-color: #ff7777;*/
         }
         
         #textEditor {
-            font-size: 24px;
+            font-size: 20px;
         }
     </style>
 </head>

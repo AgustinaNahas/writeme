@@ -141,6 +141,7 @@ const Styles = StyleSheet.create({
 		padding: 8,
 		width: 38,
 		height: 38,
+		flexGrow: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderRightWidth: 1,

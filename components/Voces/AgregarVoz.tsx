@@ -13,12 +13,14 @@ import {
 } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 
+import { Platform } from 'react-native';
+
 export const AgregarVoz = ({guardar}) => {
 
     const [name, setName] = useState("");
     const [openModal, setModal] = useState(false);
 
-    return <View style={{}}>
+    return <View style={{ height: 30 }}>
         <Modal
             animationType="slide"
             transparent={true}
@@ -59,7 +61,7 @@ export const AgregarVoz = ({guardar}) => {
                     uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA/UlEQVRIie2VQW6CQBSGvzGmCdoLlKPoOXRHh16iId0Y9SAC3ek52p4EbkBpXDAuwDiZgDDUxBr7bRjevDf/+ycwA/+0IPSXLbOHbx7XAuUBTwCSUNRWVkT4qhqmQOyQLebs9sf5oZ6cM14J1GvPZl0g+GGkgLdjcGAkeeWjmEhC0dY9lA4loRggpgAKIfV5U8Ati+Iv2/Y9Np/6Gk0CZ4nwlbbnl6ePgJWDPpwVaOu4i6PrOrgJASv+/lf02x+prn7YlFxHl7PJxNyiFOCdl4ntQiFyWg0TPW46iIGgQH1E+IDVfXAKNQk4ZIucMcAzxqnYgQSIHLKlZd29cwD9PkzcN499rwAAAABJRU5ErkJggg==",
                 }}
                 //source={require('./images/float-add-icon.png')}
-                style={{ height: 24, width: 24 }}
+                style={{ height: 24, width: 24, marginTop: Platform.OS === "ios"? 0 : 4 }}
             />
             <Text style={{ color: "#A10060", fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Agregar esta voz </Text>
         </TouchableOpacity>

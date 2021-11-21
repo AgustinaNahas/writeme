@@ -77,6 +77,7 @@ RichTextEditor.defaultProps = defaultProps
 const Styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		flexDirection: "row",
 		borderWidth: 1,
 		marginBottom: 1,
 		overflow: 'hidden',

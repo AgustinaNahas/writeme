@@ -12,7 +12,7 @@ export const VocesDisplay = ({ user }) => {
 
             let options = {
                 method: 'POST',
-                body: JSON.stringify({ user: "enzo" }),
+                body: JSON.stringify({ user: "agus" }),
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
@@ -23,6 +23,7 @@ export const VocesDisplay = ({ user }) => {
             console.log(options)
 
             fetch(apiUrl, options).then((response) => {
+                console.log(response)
                 if (response.ok) return response.json()
             }).then((json) => {
                 console.log(json)

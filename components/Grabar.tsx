@@ -61,6 +61,7 @@ type State = {
     grabacionError: boolean;
     exportarError: boolean;
     transcriptionError: boolean;
+    vozAgregada: boolean;
 };
 
 export default class Grabar extends React.Component<Props, State> {
@@ -102,6 +103,7 @@ export default class Grabar extends React.Component<Props, State> {
             interviewMode: false,
             exportarError: false,
             transcriptionError: false,
+            vozAgregada: false,
             grabacionError: false
         };
         // Lo pongo en high arbitrariamente
@@ -109,8 +111,8 @@ export default class Grabar extends React.Component<Props, State> {
 
         // Lo comento porque por default anda bien
         // UNCOMMENT THIS TO TEST maxFileSize:
-        // this.recordingSettings = {
-        //     ...this.recordingSettings,
+        this.recordingSettings = {
+            ...this.recordingSettings,
         //     android: {
         //         ...this.recordingSettings.android,
         //         extension: AUDIO.RECO,
@@ -118,17 +120,17 @@ export default class Grabar extends React.Component<Props, State> {
         //         // numberOfChannels: 2,
         //         // bitRate: 128000,
         //     },
-        //     ios: {
-        //         extension: '.wav',
-        //         audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
-        //         sampleRate: 44100,
-        //         numberOfChannels: 2,
-        //         bitRate: 128000,
-        //         linearPCMBitDepth: 16,
-        //         linearPCMIsBigEndian: false,
-        //         linearPCMIsFloat: false,
-        //     },
-        // };
+            ios: {
+                extension: '.wav',
+                audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MAX,
+                sampleRate: 44100,
+                numberOfChannels: 2,
+                bitRate: 128000,
+                linearPCMBitDepth: 16,
+                linearPCMIsBigEndian: false,
+                linearPCMIsFloat: false,
+            },
+        };
     }
 
     componentDidMount() {
@@ -455,7 +457,7 @@ export default class Grabar extends React.Component<Props, State> {
                 "extension": extension,
                 "content": fileBase64,
                 "filename": filename,
-                "mode": here.state.interviewMode,
+                "interview": here.state.interviewMode,
                 "duration": here.state.recordingDuration
             }
 
@@ -465,7 +467,7 @@ export default class Grabar extends React.Component<Props, State> {
                 "extension": extension,
                 "content": fileBase64.substring(0, 10) + "...",
                 "filename": filename,
-                "mode": here.state.interviewMode,
+                "interview": here.state.interviewMode,
                 "duration": here.state.recordingDuration
             })
 
@@ -515,21 +517,30 @@ export default class Grabar extends React.Component<Props, State> {
 
                     var texto = result.transcription;
 
+                    var textoFinal = ""
+
+                    if (texto.length >0 && typeof texto !== "string") {
+                        texto.map((object) => {
+                            const text = Object.entries(object)[0]
+                            textoFinal += "<b>" + text[0] + ":</b> " + text[1] + "<br/>"
+                        })
+                    } else textoFinal = texto;
+
                     comandos.forEach((comando) => {
                         if (comando.type === "complex"){
-                            texto = replaceComplexCommand(texto, comando.key, comando.value)
+                            textoFinal = replaceComplexCommand(textoFinal, comando.key, comando.value)
                         } else {
-                            texto = replaceSimpleCommand(texto, comando.key, comando.value)
+                            textoFinal = replaceSimpleCommand(textoFinal, comando.key, comando.value)
                         }
                     })
 
-                    here.setState({texto: texto, textoEditor: texto, filename: result.destiny, isConverting: false, isConvertingBackground: false});
+                    here.setState({texto: textoFinal, textoEditor: textoFinal, filename: result.destiny, isConverting: false, isConvertingBackground: false});
 
                 } catch(e) {
                     console.log("Press F")
                     console.log(e);
 
-                    here.setState({ transcriptionError: true })
+                    here.setState({isConverting: false, isConvertingBackground: false, transcriptionError: true })
                     setTimeout(() => here.setState({ transcriptionError: false }), 5000)
 
                 }
@@ -541,6 +552,118 @@ export default class Grabar extends React.Component<Props, State> {
         }
 
     }
+
+    private _addVoice = async (name) => {
+
+        console.log("_addVoice")
+
+        const {folder, filename} = this.state;
+
+        const here = this;
+
+        if (!this.recording) {
+            console.log("ERROR: No recording")
+            this.setState({ grabacionError: true })
+            setTimeout(() => this.setState({ grabacionError: false }), 5000)
+        } else {
+            try {
+                await this.recording.stopAndUnloadAsync();
+            } catch (error) {
+                console.log("ERROR: Can't unload async")
+                console.log(error);
+            }
+
+            if (this.state != null) {
+                let uri = this.state.uri;
+                await uploadVoiceAsync(uri);
+            }
+        }
+
+        async function uploadVoiceAsync(uri: string) {
+
+            if (here.state.recordingDuration && here.state.recordingDuration <= 60000){
+                here.setState({isConverting: true});
+            } else {
+                here.setState({isConvertingBackground: true});
+                setTimeout(() => {here.setState({isConvertingBackground: false})}, 5000);
+            }
+
+            let fileBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64'  });
+
+            let extension = uri.split('.')[uri.split('.').length - 1];
+
+            let apiUrl = "http://writeme-api.herokuapp.com/add_voice";
+
+            let contentType = here.getMimeType(extension);
+
+            var data = {
+                "username": folder,
+                "name": name,
+                "content_type": contentType,
+                "extension": extension,
+                "content": fileBase64,
+                "filename": filename,
+                "interview": here.state.interviewMode,
+                "duration": here.state.recordingDuration
+            }
+
+            console.log("data", {
+                "username": folder,
+                "name": name,
+                "content_type": contentType,
+                "extension": extension,
+                "content": fileBase64.substring(0, 10) + "...",
+                "filename": filename,
+                "interview": here.state.interviewMode,
+                "duration": here.state.recordingDuration
+            })
+
+            // console.log(fileBase64)
+
+            let options = {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+            };
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+                try {
+                    let response = await fetch(apiUrl, options);
+                    let result = await response.json();
+
+                    if (result.status === "ok"){
+                        console.log("Todo ok! Voz agregada")
+                        console.log(result)
+                    } else {
+                        console.log("ERROR: Error en la transcripción, hagan algo manga de vagos")
+                        console.log(result)
+                    }
+
+                    here.setState({isConverting: false, isConvertingBackground: false, vozAgregada: true});
+                    setTimeout(() => here.setState({ vozAgregada: false }), 5000)
+
+                } catch(e) {
+                    console.log("Press F")
+                    console.log(e);
+
+                    here.setState({ transcriptionError: true })
+                    setTimeout(() => here.setState({ transcriptionError: false }), 5000)
+
+                }
+
+
+
+            return
+        }
+
+    }
+
 
     private _loadFileServer = async (path) => {
 
@@ -706,6 +829,7 @@ export default class Grabar extends React.Component<Props, State> {
             // await this.sound.playAsync();
         } catch(e){
             console.log("ERROR: Todo salió horriblemente mal y no sabemos por qué")
+            console.log(e)
         }
 
     }
@@ -742,6 +866,9 @@ export default class Grabar extends React.Component<Props, State> {
 
                 <SnackBar visible={this.state.exportarError} textMessage="No hay texto para exportar. "
                           actionHandler={()=>{this.setState({ exportarError: false })}} actionText="ok"/>
+
+                <SnackBar visible={this.state.vozAgregada} textMessage="La voz fue agregada. "
+                          actionHandler={()=>{this.setState({ vozAgregada: false })}} actionText="ok"/>
 
                 <View style={{ display: this.state.isConverting ? "flex" : "none", position: "absolute",
                     width: this.state.isConverting ? "100%" : 0, height: this.state.isConverting ? "100%" : 0,
@@ -878,7 +1005,7 @@ export default class Grabar extends React.Component<Props, State> {
                 </View>
 
                 <View
-                    style={{ maxHeight: "30%", marginTop: 16 }}
+                    style={{ display: 'flex', flex: 1, flexDirection: 'row', paddingHorizontal: 16, maxHeight: "30%", marginTop: 16 }}
                 >
                     <Editor setTexto={(text) => {
                         this.setState({textoEditor: text})
@@ -889,7 +1016,8 @@ export default class Grabar extends React.Component<Props, State> {
                 <View
                     style={[ styles.bottomContainer ]}
                 >
-                    <View style={{ width: "100%", display: "flex", flexDirection: 'row',}}>
+                    <View style={{ width: "100%", display: "flex", flexDirection: 'row', justifyContent: "space-between",
+                        alignContent: "flex-end", paddingHorizontal: 8}}>
                         <TouchableOpacity
                             activeOpacity={0.7}
                             onPress={this._loadFile}
@@ -898,7 +1026,7 @@ export default class Grabar extends React.Component<Props, State> {
                             <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAD9ElEQVR4nO2dPWsUQRiAHxM54xcm2hg/WqsIgqK1/oOksNIfoFhHrIxoYaUXJZ1dOjUBQRDE5A8Yg/hRaCGJikREFI1eFHOx2D2JMWbvbt7Zd2b3fWAI3OZmZ95nZ/bj3t0FwzAMwzAMwzAMd/qAKvAMmAeWlMuQ3+6GQwUYARbRD3rpJFSACfQDXVoJI+gHuLQS+oBf6Ae3tBKG0Q9qq+Wyl0go8Rz9gJZ6JHxFP5ilHglZnQytPYWTELuA6CUUQUDUEooiIFoJRRIQpYSiCYhOQhEFRCWhqAKikVBkAVFIKLqA4CWUQUDQEsoiIFgJZRIQpISyCQhOQhkFBCWhrAJEJKxzrYDsIEusoxXylu7Uvw6pVhjtYQKUMQHKrNdugAek9zle9yk2ApQxAcqYAGVMgDImQBkToIwJUMYEKGMClDEBypgAZYp4LUiao8Br4BPwOf2sG9gO7HWtvIg/yESFTUHKmABlTIAyJkAZE6CMCVDGzgNWpwM4BBxL/+4D9gCb0+XfgLfAC+ARMAlMAfXcW0p4mXEu9AKXSE68Ws2Sm02/25t3o4sgoIfkoSM13NMVa2ld3Xk1PnYBA8B75PNG59K6vROrgE7yedRONV2XN2IU0AWM4z/4jTKertMLsQnoBG6RX/Ab5Q6ejjpjE6D5hK+rPjoUk4AB9IK/RHKe0C/dqVgEbAPeoStgieToqEeyY7EIuIZ+8BtlWLJjMQjYCXxHP/CNUgN2QXkuxp0BNgrUcyEtrnQBpwXqAcIfAR0k12lct9rzy+o8K1DfDEIDIHQBh3EP1mrPGB0SqPeQRAdDF3AOuS1/Ja4jYVCig6ELuI2f4DdwkXBToH/BC3iK3LTzP9qdjp449SwldAEf8bPlr6SdkfChzT79RegCfuA/+A1albDgsK4/FEmAS/AbtCKhFAKanYIkgt+gWQmlmIKa2Qn7eJdAMzvmUuyEsw5DJbf8lWSNBJHD0C8ZK/FdTmW0z/VEzGcZlLgW8UagDhf2ZyyfyKUV7TEpIeC+QB0uHMlYPkWSaBUas8C0hIAbJG/P0+IAsGON5XVgNKe2tMIogqmM19GdS09ktK8Xmaw3qVJDOIWxAjxQ7NDdJtoY0vvOqk20t2UqJL+7arxV7yewO6N93SQ/iGsHf45leaOSKXOLwD1gjOT0fyuwiUSMbzpJhvXkGv+zALwCjqN35+YScBJ4rLT+IKiit/VfyaF/waOZmug1STcmNpBvcu5Yuk5jGZ0kuZp1/AW+TjLt2Ja/Bv34OTqaw0MeaFHpRvYWpSo53qJUJHqBi7SXyDWTfrelM1x7ksnqdAAH+fc21S3p8nmS21RfAg9Jzj+maePazm8skvV3yRHRaQAAAABJRU5ErkJggg=="}}
                                    style={styles.floatingButtonStyle}
                             />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Importar </Text>
+                            <Text style={{ fontFamily: "inter", fontSize: 11, textAlign: "center", marginTop: 6 }}> Importar </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -916,7 +1044,7 @@ export default class Grabar extends React.Component<Props, State> {
                             <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAEFklEQVR4nO2dy4tOYRjAf0y+psag1IRptshYYGNBkY0kthIpl7+BndvKCmOaothY2FhIScqlZiESiXGLDbGgRi4zGHO1eH01fXO+c5nz3s/zq7OZd877PO/z+879fN8LgiAIgiAIgiAI5VkNnAVeAMPAlOPluNnh+kMN6AMmcF/0ykmoAXdxX+jKSujDfYErK2E1MI774lZWQg/ui1p0OWWkEo54ifuCVnpLGMJ9MSu9JWQN0rd8opMQuoDgJcQgIGgJsQgIVkJMAoKUEJuA4CTEKCAoCbEKCEZCzAKCkBC7AO8lVEGA1xKqIsBbCVUS4KWEqgnwTkIVBXgloaoCtEiYU7YDsousI0YRbEsvNb65urIQZocIcIwIiADbB+EFQC/wDvVCwANgu4E4dXw7yZiBzQRbgP4mcXZrjlVHBExjf0qc78B8zfFIiadlfKEdA3aktC0EdtlKRBehCViR0b7WShYaCU3AWEZ7p5UsNBKagB8Z7fOsZKGR0AQ8zmgftJKFRkIT8Cij/auVLDQSmoB+1HfQmvHaViI+YftC5U5KrDUG4smFWAMHm8QZQX1ZUDcioIFFwM+EOPcMxCIhTqWvhEHdcriQ8PebthPxBReb6BLgT0OcVYZiyS6oCbenxRgB2gzFEQEJtDHzdyiOGoolAhLYlxDnF9BlIJYISOBWk1iXDcQSAQ0sJf2nEbZqjicCGjiZEe890G4grhFCezGrFfgAdGT833NgFHXRVr/WGUc9yB9A7aqiuW9kcwtIeyZcZJlESWjVnJ8TbAlYj/rU6hBQX3o05ucMkwKWoX7V5G1GjMn//3MFtYvJK+BLyfy8wISAlcAl4G9Kv6+A08A21L6+TgfwJkdeU2Q/4gwCnQLaUUUdS+lvAtiQ0U8n8CxHbqbuoFpFl4B1wMcc/Z3P2V87cC2ln0lgS4H8vEWHgE2o3UFWX4PA4oL57QE+NfQzDhzOub7JY5wX1wFdwFPyFfYQ6thQlBqwE+hGvV96HXiSc92y4zNO2U/IxRx9TAE3dCeeE6NbgA7KJjiYo49B1D0gF0Qv4FvG+qPov8FWhOgFXE1ZdxLYqz/lQkQvoBv4nbDeCHDAQL5FiV4AqNPQh6gH7Z9RZzrLtWc6O4wK8OE01HeMji/E94KiQgQ4RgQ4RgQ4RgQ4RgQ4RgQ4RoeAoYz2PHc6yyzDwOYC+R4p2H8WRfo6ViDP3PgwhckQsLFAzscd5GhsypQzDgbjYksosxj55Nfpxp9prHzcEqxMFtRrYSAhSrA2U1ON9K+PVlGC9WmyasA5ZHfkpPjT6Ua9XDWA+znGXEiIZoI4V5Q5OzJ6tlMlZiNBiq+ZIhKk+IbII0GKb5g0CVJ8SyRJkOJbZroEbcVv0dVRBbiPegWlHzihq9N/6M+c2KywACwAAAAASUVORK5CYII="}}
                                    style={styles.floatingButtonStyle}
                             />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Exportar </Text>
+                            <Text style={{ fontFamily: "inter", fontSize: 11, textAlign: "center", marginTop: 6 }}> Exportar </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -926,7 +1054,7 @@ export default class Grabar extends React.Component<Props, State> {
                             <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAA70lEQVR4nO3dQQ6CQBAAQST+/8t65WYiwzbGqgfsAp1J2AtsGwAAAAD/4jGwxmtgjV926hnuU1fBdwSICRATICZATICYALHngj0mzhpHn84dq/c7xQTEBIgJEBMgJkBMgJgAsel35hVWnwMuZQJiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgJgAMQFiAsQEiAkQEyAmQEyAmAAxAWICxASICRATICZATICYADEBYgLEBIgJEBMgJkBMgNgdv61z9f8IbnXPJiAmQEyAmAAxAWICxAQAAAAAgEXed3cFkD3sMwAAAAAASUVORK5CYII="}}
                                    style={styles.floatingButtonStyle}
                             />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Comandos </Text>
+                            <Text style={{ fontFamily: "inter", fontSize: 11, textAlign: "center", marginTop: 6 }}> Comandos </Text>
                             <View style={{ backgroundColor: '#A10060', position: "absolute", borderRadius: 10, bottom: 20, right: 5 }}>
                                 <Text style={{ paddingVertical: 4, paddingHorizontal: 7, color: "white", fontFamily: "inter", fontSize: 10, textAlign: "center" }}>
                                     { this.props.commands ? this.props.commands.length : 0 }
@@ -941,7 +1069,7 @@ export default class Grabar extends React.Component<Props, State> {
                             <Image source={{ uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAACoUlEQVR4nO3dTWoUQQDF8b+iK+2sxCQEF3oSXeigxuQSEsWTuBdFj6HBixhF3OhC1J1KNKCJ0C5qGhkMXXRNTb3pyvtBrzp0Xs2b/phmphrMzMzMzMzMzOykOJV5exvANrAJXAYuAecKZxiqjaw/AD4CH4Bd4DnwedGhhroAPAR+EwY0ZFEbmvcIeAasKcIe5ybwneEDGWsB3fINmAjyzrgH/CF9EGMuoCWMfad85GBC2B3nGcDYC+hKuF069BrzHXZqKqA7HK2WDP00U/BaCmiBx6UCb5Dn0FNbAYfA+tB/fjoh8DZwJvI3e4TPAg3hOr9vUYvla4A7wOvIds4SXpuFe0n/O+EVcL5EkMIaQgl9Y98tEeRdJMRmiRAiW/SP/W2JEPuREDW++zsN/WPfH7rBlGNw7MS5DMf1Rco6/pSTsGXkAsRcgFjsen4ZVXUO8h4g5gLEXIDYqI6XUz4HWD4uQMwFiLkAMRcg5gLEXICY4l6Q+jpe/f9neA8QcwFiLkDMBYi5ADEXIOYCxFyAmAsQcwFiLkDMBYi5ADEXIOYCxEb1HZqppbqfPy/vAWIuQMwFiLkAMRcg5gLEXIBYyveCqroOT+DfCdfEBYi5ALEx/k64qnOM9wAxFyDmAsRSCvgRWV/zhE0rkfWx1+Y/KQXEJq6+mrDNsbgWWf+pRIjYpH17hKm9arMCvGEJJu17EAnREmYX3KKOIhrCdJSxF78F7pcI5IlbM07cmupJxuBqucbxqGToVcKE1S4gLF+Bi6WDX8fT17eE6etvFU89tcPJfoDDEXC3fORZE+Y7HKnNc9i5Ich7rO4hPr+ov4BDMj7EJ/et3XX+PcbqCuExVrFbE+rby7E3wU/CY6zeEz5ovQC+LDqUmZmZmZmZmZnV5y+7p0tjVA3rhwAAAABJRU5ErkJggg=="}}
                                    style={styles.floatingButtonStyle}
                             />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6 }}> Voces </Text>
+                            <Text style={{ fontFamily: "inter", fontSize: 11, textAlign: "center", marginTop: 6 }}> Voces </Text>
                             <View style={{ backgroundColor: '#A10060', position: "absolute", borderRadius: 10, bottom: 20, right: 5 }}>
                                 <Text style={{ paddingVertical: 4, paddingHorizontal: 7, color: "white", fontFamily: "inter", fontSize: 10, textAlign: "center" }}>
                                     { this.props.voces.length }
@@ -958,7 +1086,7 @@ export default class Grabar extends React.Component<Props, State> {
                                     uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAABSElEQVRoge2ZvW7CMBRGD1UHGFp1hr2v2G6lW/smsDDzTkhIyQvAkKJWln1zY8c/qPdIlkA20Xdk59ohYBiG0TKvwAHogUvh1gN7YJMS/lwhuNtOsRKHBsLf2i4UciEI9MDTROlcdMCLr0MSqM3F+e7N+lAgSFZMoDaPI/1bYAm8C2PctTqVbPfhlt8y9iWMSy2R2utGhx+TaE7AF16SaEpACq9ZTnMyWUATvqSESkCqAKqdMCP/Yyce2wc0aG+wLDN49zNgArWZ4x6o+kxx9zPQksAb8sb1t+9Dc8Gk02AkroSvqcLj+aF2XOphTpJQh68pEJKYFL62gCsRDD9HGc3FN7D6+fwZGtTyaVRFS2U0ChOojbSuO+C5VJARgn/uSjNwzJMliqgsG4aXC6l1PrWdgHWMwE1izzCFpYN3DC82osMbhmHk5wojHnjCVnpIzAAAAABJRU5ErkJggg==",
                                 }} style={styles.floatingButtonStyle}
                             />
-                            <Text style={{ fontFamily: "inter", fontSize: 12, textAlign: "center", marginTop: 6}}> Transcribir </Text>
+                            <Text style={{ fontFamily: "inter", fontSize: 11, textAlign: "center", marginTop: 6}}> Transcribir </Text>
                         </TouchableOpacity>
                     </View>
                     <View style={{
@@ -966,10 +1094,12 @@ export default class Grabar extends React.Component<Props, State> {
                         flexDirection: 'row', paddingLeft: 16, paddingRight: 16, marginTop: 20, marginBottom: 16
                     }}>
                         { this.state.recordingDuration ?
-                            <AgregarVoz guardar={(algo) => {console.log(algo)}} />
+                            <AgregarVoz guardar={this._addVoice} />
                             : null
                         }
-                        <View style={{ display: "flex", flexDirection: "row", alignSelf: "flex-end" }}>
+                        <View style={{ display: "flex", flexDirection: "row", justifyContent: "flex-start", alignContent: "flex-start",
+                            alignSelf: "flex-start", height: 30
+                        }}>
                             <Text style={{
                                 fontFamily: "inter",
                                 fontSize: 12,
@@ -1125,7 +1255,7 @@ const styles = StyleSheet.create({
         //barrita de reproduccion
         flex: 1,
         flexDirection: "column",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
         alignSelf: "stretch",
         paddingRight: 16,
